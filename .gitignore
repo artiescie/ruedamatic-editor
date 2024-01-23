@@ -1,0 +1,17 @@
+node_modules/
+
+!.gitkeep
+/dist/
+
+/build/
+!build/icons
+
+/.vscode/
+/.history/
+/.idea/
+/json_incoming_format.json
+
+*.log
+/static/ffmpegLocal.exe
+/doc
+/static/recycle-bin.exe
