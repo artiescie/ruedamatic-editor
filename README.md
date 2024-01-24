@@ -2,6 +2,8 @@
 
 **Electron program**, calls out rueda moves for dancing "rueda de casino".  Edits the data files for that purpose.  Produces simultaneously data files compatible with companion web application "rm-spot", which makes the rueda calls with Spotify.com music using the official Spotify web API.
 
+[Download EXE](https://come2think.com/RuedaMatic/) from come2think.com.
+
 ### Build Setup
 
 ``` bash
@@ -17,8 +19,8 @@ npm run build
 
 ### Some specific dependencies
 #### In folder static:
- - ffmpeg, 
- - recycle-bin.exe.  
+ - ffmpeg,
+ - recycle-bin.exe.
  See the file "static/what's here.txt"
 
 #### Root folder, build:
