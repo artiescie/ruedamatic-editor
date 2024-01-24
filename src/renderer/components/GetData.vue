@@ -30,8 +30,8 @@
             <b-col md="4" class="my-2">Provider:
               <b-button size="sm" v-if="getEntryObject(scheme).providedBy.providedByURL" variant="success" @click="opn(getEntryObject(scheme).providedBy.providedByURL)">{{getEntryObject(scheme).providedBy.provider}}</b-button>
             <hr>Other download info:<br>
-            <b-button size="sm" v-if="getEntryObject(scheme).infoUrls[0].url" @click="opn(getEntryObject(scheme).infoUrls[0].url)">{{getEntryObject(scheme).infoUrls[0].desc}}</b-button>
-            <b-button size="sm" v-if="getEntryObject(scheme).infoUrls[1].url" @click="opn(getEntryObject(scheme).infoUrls[1].url)">{{getEntryObject(scheme).infoUrls[1].desc}}</b-button></b-col>
+            <b-button size="sm" v-if="getEntryObject(scheme).infoUrls[0]" @click="opn(getEntryObject(scheme).infoUrls[0].url)">{{getEntryObject(scheme).infoUrls[0].desc}}</b-button>
+            <b-button size="sm" v-if="getEntryObject(scheme).infoUrls[1]" @click="opn(getEntryObject(scheme).infoUrls[1].url)">{{getEntryObject(scheme).infoUrls[1].desc}}</b-button></b-col>
             <hr>
           </b-row>
           </div>
