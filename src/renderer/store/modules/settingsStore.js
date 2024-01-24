@@ -27,7 +27,7 @@ const initialSettings = {
 }
 const state = {
   settings: _cloneDeep(initialSettings),
-  version: '5.0.1' // this is the RME App version, must agree with package.json (manual check)
+  version: '5.0.2' // this is the RME App version, must agree with package.json (manual check)
 }
 
 // update settings, get a setting
