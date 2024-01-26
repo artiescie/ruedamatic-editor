@@ -171,7 +171,7 @@ const mutations = {
     Vue.set(state.editedCombos[payload.combo].nodes[payload.node], 'editable', true)
   },
   UPDATE_NODE_IN_COMBO (state, payload) {
-    state.editedCombos[payload.combo].nodes[payload.node].text = '"' + payload.move.name + '"' // or else mermaid chokes on brackets etc
+    state.editedCombos[payload.combo].nodes[payload.node].text = '"' + payload.move.name + '"' // quotes or else mermaid chokes on brackets etc
   },
   UPDATE_WEIGHT_IN_COMBO (state, payload) {
     if (!state.editedCombos[payload.combo].nodes[payload.parent].link) {

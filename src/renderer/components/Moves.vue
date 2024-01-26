@@ -277,9 +277,18 @@ E.g. enchufla is used to setup the tumba francesa move, and the setup takes 1 me
       </b-modal>
       <b-modal id="filesInfoNoDelete" title="Files Affected Warning!">
         <p class="my-4">You have sequence files using this move:  {{currentItem && currentItem.$.name || ["error"]}}</p>
-        <p>Wherever this move is used in the sequence, remove or change it. Then you can delete it.</p>
+        <p>Wherever this move is used in these sequences, remove or change it. Then you can delete it.</p>
         <ul>
           <li v-for="(item, index) in seqFilesAffected" :key="index">
+            {{item}}
+          </li>
+        </ul>
+      </b-modal>
+      <b-modal id="combosInfoNoDelete" title="Combos Affected Warning!">
+        <p class="my-4">You have combos using this move:  {{currentItem && currentItem.$.name || ["error"]}}</p>
+        <p>Wherever this move is used in these combos, remove or change it. Then you can delete it.</p>
+        <ul>
+          <li v-for="(item, index) in comboFilesAffected" :key="index">
             {{item}}
           </li>
         </ul>
@@ -291,7 +300,6 @@ E.g. enchufla is used to setup the tumba francesa move, and the setup takes 1 me
             <b-col class="my-1" md="12" ref="filterCol">
               <b-form-group class="my-0" ref="filterGrp">
                 <b-input-group>
-                  <!-- :style="{ width: 'refs.fillterRow.width'-50 }"  -->
                   <b-form-input v-model="callFilter" ref="filterInput" style="{ width: 300 }" placeholder="Search" debounce="400"/>
                   <b-input-group-append>
                     <b-btn :disabled="!callFilter" @click="callFilter=''">X</b-btn>
@@ -590,7 +598,8 @@ export default {
       seqFilesNewMoveName: '', // by changing a move name, downstream seq files need changing
       seqFilesOldMoveLength: '', // by changing a move name, downstream seq files need changing
       seqFilesNewMoveLength: '', // by changing a move name, downstream seq files need changing
-      seqFilesReplaceOptionsXML: {} // by changing a move name, downstream seq files need changing
+      seqFilesReplaceOptionsXML: {}, // by changing a move name, downstream seq files need changing
+      comboFilesAffected: '' // for warning if trying to delate a Move, but it is in use in a Combo
     }
   },
   computed: {
@@ -1602,10 +1611,10 @@ export default {
         return // *** BAIL
       }
       if (this.currentItemBeforeEdit) {
-      // check for effects of deleting or changing a name
         const oldName = this.currentItemBeforeEdit.$.name
         const newName = this.currentItem.$.name.trim()
         if (oldName !== newName) {
+          // FIX sequences that use this move, and combos that include it
           this.seqFilesOldMoveName = 'name="' + this.currentItemBeforeEdit.$.name + '"'
           this.seqFilesNewMoveName = 'name="' + this.currentItem.$.name.trim() + '"' // also done later while saving
           this.seqFilesReplaceOptionsXML = {
@@ -1819,6 +1828,9 @@ export default {
       }
     },
     showDeleteDlg (item) {
+      // PREVENT IF:
+      //  - there are SEQUENCES using the move
+      //  - there are COMBINATIONS using the move
       this.currentItem = _cloneDeep(item)
 
       this.seqFilesOldMoveName = 'name="' + item.$.name + '"'
@@ -1833,6 +1845,34 @@ export default {
       this.seqFilesAffected = results.filter(item => item.hasChanged).map(item => path.basename(item.file))
       if (this.seqFilesAffected.length) {
         this.$bvModal.show('filesInfoNoDelete')
+        return
+      }
+
+      // let res = item.$.name + ' used in combos: \n'
+      const res = []
+      let cname = ''
+      let count = 0
+      let totalCount = 0
+
+      Object.entries(this.editedCombos).forEach(c => {
+        cname = c[0] // name of combo
+        count = 0
+        Object.entries(c[1].nodes).forEach(n => {
+          try {
+            if (n[1].text.match(/"(.*[\w)])( \[\d-\d\])?"/u)[1] === item.$.name) {
+              count += 1
+            }
+          } catch (e) {
+            // expected error console.log(e + ': ' + n.text)
+          }
+        })
+        if (count) res.push(' ' + cname + '(' + count + ')')
+        totalCount += count
+      })
+
+      if (totalCount > 0) {
+        this.comboFilesAffected = res // to module scope for template use
+        this.$bvModal.show('combosInfoNoDelete')
         return
       }
 
