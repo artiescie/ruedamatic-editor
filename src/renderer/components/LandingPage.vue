@@ -29,7 +29,7 @@
             <ul>
               <li><p class="card-text">Use or make Schemes: complete set of moves for a specific style</p></li>
               Possible schemes a teacher could make: Beginner, Advanced, Salsa Suelta, <br>Mixta, Torno, Wheelchair Rueda, etc., etc...
-              <li><p class="card-text">Beats files: record the rhythm - done just once per song</p></li>
+              <li><p class="card-text">Beats files: record the rhythm - done once for all schemes</p></li>
             </ul>
           </p>
         </b-card>
@@ -56,11 +56,11 @@
         <system-information/>
       </div>
     </main>
-    <b-modal :title="RMEFolder? RMEFolder.substring(7) : 'no folder selected'" v-model="bShowConfigProblem" @ok="getData('RM_Sample.zip')">
+    <b-modal :title="RMEFolder? RMEFolder.substring(7) : 'no folder selected'" v-model="bShowConfigProblem" @ok="getData('sample.zip')">
        <p class="my-4">The data folder "{{RMEFolder ? RMEFolder.substring(7) : ''}}" and subfolders were not found.  </p>
       <div v-if="schemesCount === 0">
         <p>NOW: We'll get the basic rueda scheme for you... </p>
-        <p><em>Including a sample music file for your Music folder "RM Sample.mp3"... Load it from your Music folder to experiment!</em></p>
+        <p><em>Including a sample music file for your Music folder... Load it from your Music folder to experiment!</em></p>
         <p>Click OK to continue... </p>
       </div>
       <div v-else>
@@ -128,8 +128,8 @@ export default {
         discDataHelper.getData(scheme, this.setRefreshSchemesFlag)
       }
     },
-    getRMSampleMusic () {
-      discDataHelper.getData('RM_Sample.zip', this.setRefreshSchemesFlag)
+    getSampleMusic () {
+      discDataHelper.getData('sample.zip', this.setRefreshSchemesFlag)
     },
     setRefreshSchemesFlag () {
       // pass this to discDataHelper to call when done with update

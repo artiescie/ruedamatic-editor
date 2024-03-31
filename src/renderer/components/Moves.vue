@@ -21,11 +21,12 @@ i18n trial case for translations, works ok but not followed up!  Not a priority.
       <b-card>
         <div>
           <input type="radio" id="moveMode" value="moveMode" v-model="modePerRadios">
-          <label for="timeMode" title="Moves for this scheme">Moves</label>
+          <label for="moveMode" title="Moves for this scheme">Moves</label>
           <input type="radio" id="comboMode" value="comboMode" v-model="modePerRadios">
           <label for="comboMode" title="Combos of moves in this scheme">Combos</label>
           <b-btn v-if="!!visibleMoves && !comboFlowShown" variant="success" class="m-1" @click="addNew" title="Create New Move/Combo">Create New
           </b-btn>
+          <span v-if="modePerRadios==='comboMode'" class="float-center"> <em>Combos use Dame to start, end in open rueda position! </em></span>
           <span class="float-right">{{ RMEFolder }}: <em>by {{ schemeProvider}}, {{ schemeDate }} </em></span>
         </div>
       </b-card>
@@ -80,41 +81,40 @@ i18n trial case for translations, works ok but not followed up!  Not a priority.
           </template>
         </b-table>
         <b-card v-if="comboFlowShown" header-tag="header" tag="article" class="mb-2">
-          <b-row>
+          <b-row title="Click on Edit Details to change this">
             <b-col>
               <h4>{{currentComboHdr.name}}</h4>
               <h6>{{currentComboHdr.description}}</h6>
-              <ul>
-                <li>Combo has easy startup moves, in open or closed pos'n: {{currentComboHdr.startup}}</li>
-                <li>Length min: {{currentComboHdr.minLength}} max: {{currentComboHdr.maxLength}}</li>
-                <li>Weight: {{currentComboHdr.weight}} / Has Upshift: {{currentComboHdr.hasUpshift}}</li>
-              </ul>
-            </b-col>
-            <b-col cols="2" class="ml-auto">
-              <b-button variant="warning" @click="editComboHeader">Edit Name etc.</b-button>
-            </b-col>
-          </b-row>
-          <span title="Build a tree of possible calls.  Used in automated move selection, see docs.
+              <!-- Removed from hints for mow: For moves with same 'equivalency', one is chosen at random.  The node shows '∈'. -->
+              <p title="Build a tree of possible calls.  Used in automated move selection, see docs.
 Then, on the Songs tab, select the combo.  You'll get a choice of results that fit the gears of the song.
 
 LEARN BY DOING: Scroll zooms, Click-Scroll pans.
-Click a box, and set a move there.
+Click a node, and set a move.
 Or: delete it and its subtree, or extend with extra beats.
 Extended beats: if you set a min and max, any length in the range could be selected.  The node then shows [min-max].
 Suggest a move in your combo for an 'upshift' (spicy/climax) beat in the song.  The node shows '🔥'.
-For moves with same 'equivalency', one is chosen at random.  The node shows '∈'.
 A move is created with a level, shown here as ⓵ to ⓺.
 To build trees, add child moves to a node (Add Next).
 More than 1 child means the combo will choose one of the possible branches.
-Add a weight to a child (click), and branch selection is guided by weight of each branch.
-
-NOTE: a branch may move on the graph after editing!">Allows randomly selecting among your fave call options.  Hover over HERE for tips</span>
-          <b-card-body>
-            <RMMermaid @nodeClick="nodeClick" :graph-data="graphForMermaid" />
-            <b-button variant="success" @click="exitComboGraph">
+Add a weight to a child (click), and random selection is influenced by relative weight of each branch.">
+                <em>STARTUP: {{currentComboHdr.startup}}&nbsp;&nbsp;&nbsp; |&nbsp;&nbsp;&nbsp;
+WEIGHT: {{currentComboHdr.weight}}&nbsp;&nbsp;&nbsp; |&nbsp;&nbsp;&nbsp; LENGTH min: {{currentComboHdr.minLength}} max: {{currentComboHdr.maxLength}}
+                      &nbsp;&nbsp;&nbsp;  ||</em><strong>&nbsp;&nbsp;&nbsp;&nbsp;(HOVER here for tips!)</strong>
+              </p>
+            </b-col>
+            <b-col cols="3" class="ml-auto">
+              <b-button variant="warning" @click="editComboHeader" title="Change combo name, weight, startup flag, description">Edit Details</b-button>
+              <b-button size="sm" variant="success" @click="testCombo(currentComboHdr)"
+                 title="Test how well this combo fits songs available in the system" :disabled="graphReady">Test</b-button>
+            </b-col>
+          </b-row>
+          <b-card-body style="padding:0rem" id="mermaid-graph">
+            <RMMermaid @nodeClick="nodeClick" :graph-data="graphForMermaid" title="Click a node to change it!"/>
+            <b-button variant="success" @click="comboFlowShown = false" title="Close this detail and see list of all Combos">
               <v-icon class="m-1" name="angle-left" />Back to List
             </b-button>
-            <b-button variant="danger" @click="deleteCombo">Delete Combo</b-button>
+            <b-button variant="danger" @click="deleteCombo" title="Delete this entire combo (final)">Delete Combo</b-button>
           </b-card-body>
         </b-card>
       </div>
@@ -146,11 +146,11 @@ NOTE: a branch may move on the graph after editing!">Allows randomly selecting a
         <div id="waveform" title="Important: minimize opening silence.  Also, trim length, and check loudness." >
           <pulse-loader v-if="bLoading" color="red" style="height: 64px;display: flex;align-items: center;justify-content: center" />
         </div>
-        <b-form-fieldset :variant="valnName() ? 'primary':'danger'" title="Move name - 3-45 chars, capitalize first letter.  No quotes, apostrophe, or square brackets.
-If there's descriptive text after the name, not part of the call - put it in parentheses '()'.
-Use proper diacritics - users can still find them using only plain letters.
-Diacritics are essential for the Polly AI to pronounce Spanish words correctly!
-Use a web page for easy copy/paste of diacritics - see https://blog.busuu.com/spanish-accents/"
+        <b-form-fieldset :variant="valnName() ? 'primary':'danger'" title="Move name - 3-50 chars, capitalize first letter.  No quotes, braces or square brackets.
+No double space, or dash.  If there's descriptive text after the bare name, not part of the actual call - place in parentheses '()'.
+Use proper diacritics [áéíóúñ].
+Accents are important for Polly AI to pronounce Spanish words correctly!
+You can use copy/paste from https://blog.busuu.com/spanish-accents/"
           label="Name:">
           <b-form-input ref="moveName" :variant="valnName() ? 'primary':'danger'" v-model="currentItem.$.name"
             type="text" />
@@ -277,7 +277,7 @@ E.g. enchufla is used to setup the tumba francesa move, and the setup takes 1 me
       </b-modal>
       <b-modal id="filesInfoNoDelete" title="Files Affected Warning!">
         <p class="my-4">You have sequence files using this move:  {{currentItem && currentItem.$.name || ["error"]}}</p>
-        <p>Wherever this move is used in these sequences, remove or change it. Then you can delete it.</p>
+        <p>Wherever this move is used in these sequences, remove or change it. Then you can delete it here.</p>
         <ul>
           <li v-for="(item, index) in seqFilesAffected" :key="index">
             {{item}}
@@ -286,7 +286,7 @@ E.g. enchufla is used to setup the tumba francesa move, and the setup takes 1 me
       </b-modal>
       <b-modal id="combosInfoNoDelete" title="Combos Affected Warning!">
         <p class="my-4">You have combos using this move:  {{currentItem && currentItem.$.name || ["error"]}}</p>
-        <p>Wherever this move is used in these combos, remove or change it. Then you can delete it.</p>
+        <p>Wherever this move is used in these combos, remove or change it. Then you can delete it here.</p>
         <ul>
           <li v-for="(item, index) in comboFilesAffected" :key="index">
             {{item}}
@@ -316,7 +316,7 @@ E.g. enchufla is used to setup the tumba francesa move, and the setup takes 1 me
       </b-modal>
 
       <!-- editing Combos -->
-      <b-modal id="nodeEditSwitchboard" :title="'Editing move: ' + modalEditNodeTitle()" ok-only ok-title="Close">
+      <b-modal id="nodeEditSwitchboard" :title="'Editing move: ' + modalEditNodeTitle()" v-model="modalEditSwitchboardShown" :no-close-on-esc="true" ok-only ok-title="Close">
         <template v-slot:modal-ok>Cancel</template>
         <b-container fluid>
           <b-row class="mb-1">
@@ -349,6 +349,7 @@ E.g. enchufla is used to setup the tumba francesa move, and the setup takes 1 me
               </b-button>
             </b-col>
           </b-row>
+          <!--
           <b-row class="mb-1">
             <b-col cols="6">Allow equivalent move</b-col>
             <b-col>
@@ -358,6 +359,7 @@ with the same equivalency may be substituted." @click="showAllowEquivalentDlg = 
               </b-button>
             </b-col>
           </b-row>
+          -->
           <b-row class="mb-1">
             <b-col cols="6">Suits an upshift beat (spicy)</b-col>
             <b-col>
@@ -383,12 +385,13 @@ So an upshift step should be for example, a high energy move." @click="showAllow
                 @shown="$refs.filterInput.focus()">Add next</b-button>
             </b-col>
           </b-row>
+          <small><em>( {{currentEditNode}} )</em></small>
         </b-container>
       </b-modal>
 
       <!-- Combos header level details -->
       <b-modal id="modalEditComboHeader" v-model="modalEditComboHeaderShown" :ok-disabled="!valnComboHeader"
-        title="Edit Combo Header" close-title="Cancel" @ok="persistComboHeader" @hide="removeDlgAlerts()"
+        title="Combo (should end in open rueda position!)" close-title="Cancel" @ok="persistComboHeader" @hide="removeDlgAlerts()"
         @shown="$refs.moveName.focus()">
         <b-alert v-model="alertNameUnique" variant="danger" dismissible>
           Name is not unique, already in use!
@@ -405,17 +408,17 @@ So an upshift step should be for example, a high energy move." @click="showAllow
         <b-form-fieldset title="Move is designed for dance startup, simple steps in open or closed position">
           <b-form-checkbox v-model="tempCurrentComboHdr.startup" >Startup: good for rueda startup (usually guapea, or al medio).</b-form-checkbox>
         </b-form-fieldset>
-        <b-form-fieldset title="Weight (relative odds of picking this combo)"><b-form-group label="Relative odds to pick this combo (0 means don't use):"
+        <b-form-fieldset title="Weight (relative odds of picking this combo)"><b-form-group label="Relative weight in AUTOMATIC mode (0 means don't use in autofill):"
             label-for="cboWeight"
             label-cols-sm="6"
             label-cols-lg="10"
             content-cols-sm
             content-cols-lg="1">
-          <b-form-input ref="cboWeight" v-model="tempCurrentComboHdr.weight"  min="0" max="9" type="number" /></b-form-group>
+          <b-form-input ref="cboWeight" v-model="tempCurrentComboHdr.weight"  min="0" max="20" type="number" /></b-form-group>
         </b-form-fieldset>
       </b-modal>
       <!-- modal to edit node on the Mermaid graph -->
-      <b-modal size="lg" id="modalEditNode" v-model="modalEditNodeShown"
+      <b-modal size="lg" id="modalEditNode" v-model="modalEditNodeShown" :no-close-on-esc="true"
         :title="(nodeMoveMode==='changeMove'?'Changing move':'Add move after') + ': ' +  modalEditNodeTitle()"
         close-title="Cancel" @shown="$refs.filterInput.focus()" @hidden="moveFilterTemp=''" scrollable ok-only>
         <template v-slot:modal-ok>Cancel</template>
@@ -447,11 +450,11 @@ So an upshift step should be for example, a high energy move." @click="showAllow
       </b-modal>
       <!-- mermaid graph edits -->
       <b-modal :title="'Weight of this branch: '  +modalEditNodeTitle()" v-model="showWeightDlg"
-        :ok-disabled="!/^[0-9]$/g.test(nodeEditWeightVars.weightTemp)"
+        :ok-disabled="!/^[0-9]{1,2}$/g.test(nodeEditWeightVars.weightTemp)"
         @ok="nodeEditWeightVars.weight=nodeEditWeightVars.weightTemp; setNodeWeight(); $bvModal.hide('nodeEditSwitchboard')">
         <b-form-fieldset
-          title="Move weight - (1 to 9)) a number for the likelihood of this move being selected vs. alternative moves"
-          label="Relative weight vs alternative branch: (0 to 9)">
+          title="Move weight - (1 to 20 rec)) a number for the likelihood of this branch being selected vs. siblings"
+          label="Relative weight vs sibling branch: (0 to 20 rec.)">
           <b-form-input ref="nodeWeight" v-model="nodeEditWeightVars.weightTemp" type="text" />
         </b-form-fieldset>
       </b-modal>
@@ -469,7 +472,7 @@ So an upshift step should be for example, a high energy move." @click="showAllow
         </b-form-fieldset>
       </b-modal>
       <b-modal :title="'Stretch measures: ' +modalEditNodeTitle()" v-model="showExtraTimeDlg"
-        :ok-disabled="!(/^[0-9]$/g.test(nodeEditExtraTimeMinTemp) && /^[0-9]$/g.test(nodeEditExtraTimeMaxTemp) && ((nodeEditExtraTimeMaxTemp > nodeEditExtraTimeMinTemp) || nodeEditExtraTimeMaxTemp == 0))"
+        :ok-disabled="!(/^[0-9]$/g.test(nodeEditExtraTimeMinTemp) && /^[0-9]$/g.test(nodeEditExtraTimeMaxTemp) && ((nodeEditExtraTimeMaxTemp >= nodeEditExtraTimeMinTemp) || nodeEditExtraTimeMaxTemp == 0))"
         @ok="nodeEditExtraTimeMax = nodeEditExtraTimeMaxTemp; nodeEditExtraTimeMin = nodeEditExtraTimeMinTemp; updateNodeExtras(); $bvModal.hide('nodeEditSwitchboard')">
         <b-alert show=true variant="info">
           Enter 0 (zero) in the MAX box to cancel extra time
@@ -501,11 +504,13 @@ import replace from 'replace-in-file'
 import RMMermaid from './Moves/RMMermaid'
 // eslint-disable-next-line no-unused-vars
 import { toRegex, toString } from 'diacritic-regex'
+import AutoFiller from './../components/Songs/AutoFiller'
 
 // Pretty-printing is implemented natively in JSON.stringify(). The third argument enables pretty printing and sets the spacing to use:
 // var str = JSON.stringify(obj, null, 2); // spacing level = 2
 
 const discDataHelper = new DiscDataHelper()
+const DLDIR = electron.remote.app.getPath('downloads')
 const DOCDIR = electron.remote.app.getPath('documents')
 const RMDIR = path.join(DOCDIR, 'RuedaMaticEditor')
 
@@ -581,6 +586,8 @@ export default {
       modePerRadios: 'moveMode',
       modalPickerShown: false,
       modalEditNodeShown: false,
+      modalEditSwitchboardShown: false,
+
       showDeleteAlert: false,
       detailClicked: false,
       currentItem: null,
@@ -599,10 +606,22 @@ export default {
       seqFilesOldMoveLength: '', // by changing a move name, downstream seq files need changing
       seqFilesNewMoveLength: '', // by changing a move name, downstream seq files need changing
       seqFilesReplaceOptionsXML: {}, // by changing a move name, downstream seq files need changing
-      comboFilesAffected: '' // for warning if trying to delate a Move, but it is in use in a Combo
+      comboFilesAffected: '', // for warning if trying to delate a Move, but it is in use in a Combo
+
+      comboTestsByPerm: {},
+      comboTestsBySong: {}
     }
   },
   computed: {
+    graphReady () {
+      // if (document.getElementById('mermaid-graph')) {
+      if (document.getElementById('mermaid')) {
+        // if (document.getElementById('mermaid-graph').innerHTML.class === 'v-spinner') return true
+        return false
+      } else {
+        return false // true
+      }
+    },
     valnComboHeader () {
       this.alertNameGeneralCombo = false // removed this alert for now?
       this.alertNameUnique = false
@@ -832,7 +851,7 @@ export default {
       this.$root.$i18n.locale = val // this changes it for all components
     },
     RMEFolder (newVal) {
-      this.exitComboGraph()
+      this.comboFlowShown = false
       this.filter = ''
     },
     modePerRadios (newVal) {
@@ -870,6 +889,95 @@ export default {
     next() // you gotta manually call next if you use this hook
   },
   methods: {
+    testCombo (cboHdr) {
+      this.$bvToast.toast('Testing this combo against available songs, please wait... ', { title: 'Testing...' })
+      setTimeout(() => this.testComboImpl(cboHdr), 100)
+    },
+    testComboImpl (cboHdr) {
+      if (!document.getElementById('mermaid')) return // doesnt work
+      const getFilename = () => {
+        // from SO make a date string for use in a filename
+        var today = new Date()
+        var y = today.getFullYear()
+        // JavaScript months are 0-based.
+        var m = ('0' + (today.getMonth() + 1)).slice(-2)
+        var d = ('0' + (today.getDate())).slice(-2)
+        var h = ('0' + (today.getHours())).slice(-2)
+        var mi = ('0' + (today.getMinutes())).slice(-2)
+        var s = ('0' + (today.getSeconds())).slice(-2)
+        return y + m + d + '-' + h + mi + s
+      }
+
+      const timeStart = new Date()
+      this.comboTestsByPerm = {}
+      this.comboTestsBySong = {}
+      const that = this
+      const songList = replace.sync({
+        files: path.join(RMDIR, 'compases_para_canciones', '*.xml'),
+        from: /<musicfile.*">([^<]*)<\/musicfile>\s+.*authorAndSongURL.*>(http[^<]*)?(.+)?<\/authorAndSongURL>/gi,
+        // to: (...args) => lookin(args), // here the beatsFiles array is populated
+        to: 'dummy',
+        dry: true // dry-run, no real replace happens!
+      })
+
+      const copy = songList.slice()
+      copy.sort(() => Math.random() - 0.5)
+      const chosenSongs = copy.slice(0, 9) // 10 max sample size
+
+      for (let i = 0; i < chosenSongs.length; i++) {
+        const xmlFilePath = chosenSongs[i].file
+        // eslint-disable-next-line no-unused-vars
+        const xmlFile = path.basename(xmlFilePath)
+        that.comboTestsBySong[xmlFile] = {}
+        let xmlData
+        const audit = []
+        try {
+          xmlData = discDataHelper.getXMLData(xmlFilePath, { type: 'beats' }) || []
+        } catch (e) {
+          if (e.message.search('ENOENT') === 0) {
+            this.$bvToast.toast('Can\'t reload saved beats, the beats file does not exist.', { title: 'No Beats file yet' })
+          } else {
+            this.$bvToast.toast('Can\'t reload saved beats, file is illegal format.', { title: 'Illegal format' })
+          }
+          console.error('ERROR: Failed to get measures data for music file: ' + '\n' + e.stack)
+        }
+
+        const beats = xmlData.beats
+        for (let j = 0; j < beats.length; j++) {
+          const autoFiller = new AutoFiller([], that.storeMoves, that.editedCombos, beats, j) // arg1 is an existing sequence, or empty array if none
+          autoFiller.genOkPerms(audit, { $: cboHdr }) // arg1 is now an audit log, not used here
+          // cboHdr is augmented during the above call, by discovering and attaching endNodes collection
+          if (!Object.keys(that.comboTestsByPerm).length) that.comboTestsByPerm = _cloneDeep(cboHdr.endNodes) // initialize only the first time through here
+          if (!Object.keys(that.comboTestsBySong[xmlFile]).length) that.comboTestsBySong[xmlFile] = _cloneDeep(cboHdr.endNodes) // initialize only the first time through here
+          for (let j = 0; j < autoFiller.okPerms.length; j++) {
+            const p = autoFiller.okPerms[j]
+            const node = 'node' + p.hdr.id.split('-')[1]
+            that.comboTestsByPerm[node].permCount += 1
+            that.comboTestsByPerm[node].permDict[p.hdr.id] += 1
+            that.comboTestsBySong[xmlFile][node].permCount += 1
+            that.comboTestsBySong[xmlFile][node].permDict[p.hdr.id] += 1
+          }
+        }
+      }
+
+      let comboData = JSON.stringify(that.comboTestsByPerm, null, 2)
+      comboData = 'Combo: "' + cboHdr.name + '" - perms that fit OK by song, starting at all positions in song\n' + comboData
+      fs.writeFile(path.join(DLDIR, '/RM-MOV-COMBOS-TEST-' + getFilename() + '.json'), comboData, err => {
+        if (err) {
+          throw err
+        }
+        console.log('JSON Combo data is saved.')
+      })
+      let songData = JSON.stringify(that.comboTestsBySong, null, 2)
+      songData = 'Combo: "' + cboHdr.name + '" - perms that fit OK by song, starting at all positions in song\n' + songData
+      fs.writeFile(path.join(DLDIR, '/RM-MOV-SONGS-TEST-' + getFilename() + '.json'), songData, err => {
+        if (err) {
+          throw err
+        }
+        console.log('JSON Song data is saved.')
+      })
+      this.$bvModal.msgBoxOk('Done: results are in your Download folder (ms: ' + (new Date() - timeStart) + ')', { title: 'Finished' })
+    },
     titleComparator (a, b, fldname) {
       function titleComparatorHelper (a, b) {
         const articles = ['un', 'unos', 'el', 'los', 'una', 'unas', 'la', 'las', 'lo']
@@ -1223,11 +1331,11 @@ export default {
               this.nodeEditDisableWeight = false
               if (!nodeList[sNode].link) {
                 // there's NOT already a weight
-                //  initialize it to zero for edit dialog
+                //  initialize it to four for edit dialog
                 this.nodeEditWeightVars = {
                   parent: '',
                   indexInParent: -1,
-                  weight: 0,
+                  weight: 4,
                   weightTemp: 0 // temp value while editing
                 }
               } else {
@@ -1279,9 +1387,6 @@ export default {
         })
       }
     },
-    exitComboGraph () {
-      this.comboFlowShown = false
-    },
     deleteCombo () {
       this.$bvModal.msgBoxConfirm('Delete this combo completely: Are you sure?')
         .then(value => {
@@ -1310,8 +1415,6 @@ export default {
     },
     showFlow (item) {
       this.currentComboHdr = item
-      // find the link weight to this node and add it for edit purposes
-      // search the node list for links to this node
       this.comboFlowShown = true
     },
     onCallClicked (item, index) {
@@ -1330,6 +1433,7 @@ export default {
     keyDownHandler (event) {
       const kcDown = 40
       const kcEnter = 13
+      const kcEsc = 27
       if (this.modalPickerShown) {
         if (event.keyCode === kcDown) { // space key
           try {
@@ -1344,11 +1448,11 @@ export default {
             console.log('can\'t focus first row, doesn\'t exist?')
           }
         }
-      } else {
-        // event.preventDefault() // mainly if a button has focus, stops "space" "enter" from clicking it
-      }
-      if (this.modalEditNodeShown) {
-        if (event.keyCode === kcDown) { // space key
+      // order of next three is important!  modalEditNodeShown, modalEditSwitchboardShown, comboFlowShown
+      } else if (this.modalEditNodeShown) {
+        if (event.keyCode === kcEsc) { // auto close stopped, because of overlay
+          this.modalEditNodeShown = false
+        } else if (event.keyCode === kcDown) { // space key
           try {
             this.$refs.modalEditNodeCalls.$el.rows[1].focus()
           } catch (e) {
@@ -1360,6 +1464,14 @@ export default {
           } catch (e) {
             console.log('can\'t focus first row, doesn\'t exist?')
           }
+        }
+      } else if (this.modalEditSwitchboardShown) {
+        if (event.keyCode === kcEsc) { // auto close stopped, because of overlay
+          this.modalEditSwitchboardShown = false
+        }
+      } else if (this.comboFlowShown) {
+        if (event.keyCode === kcEsc) { // space key
+          this.comboFlowShown = false
         }
       } else {
         // event.preventDefault() // mainly if a button has focus, stops "space" "enter" from clicking it
@@ -1400,10 +1512,14 @@ export default {
         if (test === 'Continue') {
           return false // reserved name Continue
         }
-        if (test.indexOf('[') > 0) return false // square brackets reserved for combo move graphs for displayed names of variable length moves
-        if (test.indexOf('"') > 0) return false // double quotes may confuse the mermaid engine
+        if (test.indexOf('  ') > 0) return false // single space reqd, if more allowed things look deceptive
+        // note this regex should be consistent with validation in moveStore::getMovesInCombos method
+        const resRe = test.match(/^(([\wáéíóúñÁÉÍÓÚÑ.'\-, ]*[\wáéíóúÁÉÍÓÚ.']+)( \([\wáéíóúñÁÉÍÓÚÑ'\-/, ]*\))?)$/u)
+        if (resRe === null) return false // illegal characters
+        if (resRe[2].length > 50) return false // basic move name
+        if (resRe[1].length > 70) return false // basic move name PLUS comment in parentheses
         // part of name after '(' can be an saved as explanation of context, but is not to be pronounced:
-        return test.length >= this.valNameMinLen && test.length <= this.valNameMaxLen && (test.indexOf('(') >= this.valNameMinLen || test.indexOf('(') === -1)
+        return true
       } else {
         return false
       }
@@ -1481,7 +1597,7 @@ export default {
         credentials: 'same-origin', // include, *same-origin, omit
         headers: {
           'Content-Type': 'application/json', // 'Content-Type': 'application/x-www-form-urlencoded',
-          'x-api-key': 'AqViEIc4ZM1o094NKHXwb92benx4aIBt1Y2pgmM7'
+          'x-api-key': 'AqViEIc4ZM1o094NKHXwb92benx4aIBt1Y2pgmM7' // the gateway is open//public, cost-limited by usage plan quota
         },
         redirect: 'follow', // manual, *follow, error
         referrerPolicy: 'no-referrer', // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
@@ -1507,7 +1623,7 @@ export default {
             credentials: 'same-origin', // include, *same-origin, omit
             headers: {
               'Content-Type': 'application/json', // 'Content-Type': 'application/x-www-form-urlencoded',
-              'x-api-key': 'AqViEIc4ZM1o094NKHXwb92benx4aIBt1Y2pgmM7'
+              'x-api-key': 'AqViEIc4ZM1o094NKHXwb92benx4aIBt1Y2pgmM7' // the gateway is open//public, cost-limited by usage plan quota
             },
             redirect: 'follow', // manual, *follow, error
             referrerPolicy: 'no-referrer', // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
@@ -1749,7 +1865,7 @@ export default {
         this.tempCurrentComboHdr = {
           name: '',
           description: '',
-          weight: 5,
+          weight: 4,
           startup: false,
           hasUpshift: false,
           maxLength: 1,
@@ -1848,7 +1964,6 @@ export default {
         return
       }
 
-      // let res = item.$.name + ' used in combos: \n'
       const res = []
       let cname = ''
       let count = 0

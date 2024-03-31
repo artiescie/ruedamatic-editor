@@ -157,33 +157,20 @@ export default {
         dry: true
       })
       console.log('Author id for current user: ' + locAuthorId)
-
-      if (beatsToOverwrite.length === 1 && beatsToOverwrite[0] === 'compases_para_canciones/RM Sample.xml') {
-        // just quietly let them get the sample, don't confuse a noob with prompts
-      } else {
-        this.$bvModal.msgBoxOk(newBeats.length + ' totally new beats files were installed that you didn\'t have yet in your Beats \n FILES LIST: ' + newBeats.join(' // '), { title: 'Brand new beats files installed' })
-      }
+      this.$bvModal.msgBoxOk(newBeats.length + ' totally new beats files were installed that you didn\'t have yet in your Beats \n FILES LIST: ' +
+        newBeats.join(' // '), { title: 'Brand new beats files installed' })
       if (othersBeats.length > 0) {
-        if (beatsToOverwrite.length === 1 && beatsToOverwrite[0] === 'compases_para_canciones/RM Sample.xml') {
-          // just quietly let them get the sample, don't confuse a noob with prompts
-          for (let i = 0; i < othersBeats.length; i++) {
-            const tempSrc = path.join(TEMPDIR, 'compases_para_canciones', othersBeats[i])
-            const tempDest = path.join(RMDIR, 'compases_para_canciones', othersBeats[i])
-            fs.moveSync(tempSrc, tempDest, { overwrite: true })
-          }
-        } else {
-          this.$bvModal.msgBoxConfirm(othersBeats.length + ' of the incoming beats files exist already (and haven\'t been touched by you).  ' +
-              'Do you want the new files to overwrite? \n FILES LIST: ' + othersBeats.join(' // '), { title: 'Overwrite existing Beats files?', okTitle: 'YES', cancelTitle: 'NO' })
-            .then(value => {
-              if (value) {
-                for (let i = 0; i < othersBeats.length; i++) {
-                  const tempSrc = path.join(TEMPDIR, 'compases_para_canciones', othersBeats[i])
-                  const tempDest = path.join(RMDIR, 'compases_para_canciones', othersBeats[i])
-                  fs.moveSync(tempSrc, tempDest, { overwrite: true })
-                }
+        this.$bvModal.msgBoxConfirm(othersBeats.length + ' of the incoming beats files exist already (and haven\'t been touched by you).  ' +
+            'Do you want the new files to overwrite? \n FILES LIST: ' + othersBeats.join(' // '), { title: 'Overwrite existing Beats files?', okTitle: 'YES', cancelTitle: 'NO' })
+          .then(value => {
+            if (value) {
+              for (let i = 0; i < othersBeats.length; i++) {
+                const tempSrc = path.join(TEMPDIR, 'compases_para_canciones', othersBeats[i])
+                const tempDest = path.join(RMDIR, 'compases_para_canciones', othersBeats[i])
+                fs.moveSync(tempSrc, tempDest, { overwrite: true })
               }
-            })
-        }
+            }
+          })
       }
       if (myBeats.length > 0) {
         this.$bvModal.msgBoxConfirm(myBeats.length + ' of the incoming beats files exist already (MODIFIED BY YOU).  ' +

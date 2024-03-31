@@ -71,7 +71,7 @@ class discDataHelper {
   }
 
   getData (sScheme, callbackDone, callbackBeats) {
-    // Gets the sample ZIP files containing extra RM data samples
+    // Gets the ZIP files containing extra samples
     const fname = sScheme
     // eslint-disable-next-line no-unused-vars
     let nInstalled = 0
@@ -167,6 +167,8 @@ class discDataHelper {
   }
 
   settingsFileExists () {
+    // in dev, ~\AppData\Roaming\Electron\rme\userData.json
+    // in prod, ~\AppData\Roaming\ruedamatic-editor\rme\userData.json
     const uDataDir = electron.remote.app.getPath('userData')
     const udFile = path.join(uDataDir, 'rme', 'userData.json')
     return this.fileExists(udFile)
@@ -591,7 +593,8 @@ class discDataHelper {
         ]
       })
       fs.ensureDir(path.join(RMSPOT, asWhat.schemeName, 'secuencias_para_canciones'))
-      fs.writeFileSync(path.join(RMSPOT, asWhat.schemeName, 'secuencias_para_canciones', path.basename(outFilePath).replace(/\.seq/, '.jseq')), JSON.stringify(objDataClean, null, 2), 'utf8')
+      const wrapRMSData = { name: asWhat.schemeName, authorId: asWhat.authorId, tags: asWhat.seqTags, moves: objDataClean }
+      fs.writeFileSync(path.join(RMSPOT, asWhat.schemeName, 'secuencias_para_canciones', path.basename(outFilePath).replace(/\.seq/, '.jseq')), JSON.stringify(wrapRMSData, null, 2), 'utf8')
     } else if (asWhat.type === 'combos') {
       xml = builder.buildObject({
         root: [

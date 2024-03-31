@@ -23,15 +23,16 @@ CREATE COMBO in MOVES TAB
       Within a combo, you can specify a range IN ADDTION to the basic five.
        e.g. Min=2, Max=4 means the move could take from 7 to 9 beats in total (5+2, 5+4).
        The algorithm is then allowed to choose from whatever perm fits the point of insertion
-       Fits: Alogirithm asses the sync points.  Where gear = 'refresh', or 'climax'.
-          If we can break to new move at all but 1 "refresh", and exacty at a single "climax" shift, it's a fit.
+       Fits: Alogirithm asses the sync points.  Where gear = 'accent', or 'climax'.
+          If we can break to new move at all but 1 "accent", and exacty at a single "climax" shift, it's a fit.
        If more than one possibility, a choice is made - randomly... but weighted by the branches and weights in the Combo graph.
 
 USE OF COMBOS in SONGS tab
 
-NON CLIMAX/SPICY section of the song (all in the less intense gears, e.g. "song", or "mellow", except for Refresh probably every 8 beats)
+NON CLIMAX/SPICY section of the song (all in the less intense gear "mellow"...
+  ... except for Accent, we suggest there is usually an emphasis every 8 beats.  Don't pack accent too densely!)
 
-- In the BEATS view: the gear "refresh" should be assigned to beats where there's a fresh start in the music.
+- In the BEATS view: the gear "accent" should be assigned to beats where there's a fresh start in the music.
    I.e. Start of a verse, a phrase, certain percussion (cymbal etc)
    BUT: Something that would be a signal to an imaginary typical suelta dancer... at "La Tropical" in Havana...
       to change their step... and express the musical change with a step change.
@@ -40,10 +41,10 @@ NON CLIMAX/SPICY section of the song (all in the less intense gears, e.g. "song"
       THEN: call it "climax" gear.  Often there's one climax gear a song, maybe another sometimes...
 - In the CALLS view:
    Click on an empty beat (i.e. no move is already there)... that will raise the Move/Combo dlg.  Select a Combo.
-   THEN the program picks a perm so that a MOVE CHANGE corresponds to the REFRESH.
+   THEN the program picks a perm so that a MOVE CHANGE corresponds to the ACCENT.
 
 NON-HOMOGENEOUS
-  UPSHIFT section of the song (has 1+ 'refresh' gears, and then a 'climax' or 'spicy')
+  UPSHIFT section of the song (has 1+ 'accent' gears, and then a 'climax' or 'spicy')
 
 - When designing the Combo (In the MOVES tab) : Mark a move in the Combo as Climax or spicy.
    THEN in the Songs Tab, click a beat to add a Combo:
@@ -156,21 +157,21 @@ so you can filter, select in the loader.">
               <h4>Allowed Permutations to fit gears in the song, 1 randomly selected</h4>
               <p>Format: The name shows abbreviated moves included.  The format is: 3 chars of move name, * for upshift here, followed by numeric length of move.
               And at the end, total beats in particular permutation.</p>
-              <p>The legal moves must fit to Refresh and Climax/Spicy gears found in the song.  You can allow one miss using the check box above on the right.</p>
+              <p>The legal moves must fit to Accent and Climax/Spicy gears found in the song.  You can allow one miss using the check box above on the right.</p>
               <b-form-group label="One is randomly selected.  You may choose another if available.  Hover over combo for full details!">
                 <div v-for="(perm, idx) in autoFiller.okPerms" :title="getPermTitle(perm)" :key="perm.hdr.id">
                   <b-form-radio v-model="autoFiller.selPermIndex" name="perm-radios" :value="idx">{{perm.hdr.id}}</b-form-radio>
                 </div>
               </b-form-group>
-              <b-button variant="warning" @click="usePerm();exitComboGraph()" title="Use the selected combo below; or change it, then click"><v-icon class="m-1" name="plus-square"/>Add Selected</b-button>
-              <b-button variant="success" @click="exitComboGraph"><v-icon  class="m-1" name="angle-left"/>Back to Song</b-button>
+              <b-button variant="warning" @click="usePerm();comboFlowShown = false" title="Use the selected combo below; or change it, then click"><v-icon class="m-1" name="plus-square"/>Add Selected</b-button>
+              <b-button variant="success" @click="comboFlowShown = false"><v-icon  class="m-1" name="angle-left"/>Back to Song</b-button>
               <p>Click "Add Selected" to add the sequence of moves in the selected combo (see list below).  Or, change selection then click.</p>
             </div>
             <div v-else>
               <h4>No Allowed Permutations fit the gear shifts in the song!</h4>
-              <p>If there's a Refresh gear, a move call must fall exactly at that point.
+              <p>If there's a Accent gear, a move call must fall exactly at that point.
                 This is to support the goal of the dancers "Dancing with the music".</p>
-              <b-button variant="success" @click="exitComboGraph"><v-icon  class="m-1" name="angle-left"/>Back to Song</b-button>
+              <b-button variant="success" @click="comboFlowShown = false"><v-icon  class="m-1" name="angle-left"/>Back to Song</b-button>
             </div>
           </b-card-body>
         </b-card>
@@ -282,7 +283,11 @@ WHAT THE SHIFT WILL DO:
           You must create Combos before you can Autofill moves for a song.
         </p>
         <p v-else-if="movesCombosOrAuto === 'autoMode' && Object.entries(editedCombos).length > 0" >
-          Push OK to use the Combos to complete the moves for the song.  Autofill will try to match the Refresh, and the Spicy and Climax gears to create a danceable song.
+          Push OK to autofill the moves for the song.  <p>Use autofill on songs that have NO SAVED SEQUENCE that you want to keep!
+            Autofill will try to match the gears (Accent/Spicy/Climax) ... so dancing works with the song's musicality.</p>
+          <!-- <p v-if="SEQFileExists"> -->
+            <!-- <p>Autofill is intended for songs you always want to use Autofill on.  I.e. not for songs that have a preset sequence you want to keep.   </p> -->
+            <p>If you want to save an autofill sequence, just change or add any move and the result is saved.</p>
         </p>
         <!-- combo-table__row_Comb -->
       </b-container>
@@ -341,6 +346,15 @@ import RMMermaid from '../Moves/RMMermaid'
 // eslint-disable-next-line no-unused-vars
 import { toRegex, toString } from 'diacritic-regex'
 import AutoFiller from './AutoFiller'
+import path from 'path'
+import DiscDataHelper from '../../store/shared/DiscDataHelper.js'
+import electron from 'electron'
+import fs from 'fs-extra'
+
+const DOCDIR = electron.remote.app.getPath('documents')
+const RMDIR = DOCDIR + '/RuedaMaticEditor'
+const DLDIR = electron.remote.app.getPath('downloads')
+const discDataHelper = new DiscDataHelper()
 
 // there is plain JS code at the top level imported from a prior actionscript program
 // basically it's for analyzing the beats and doing a few types of quick fix on them
@@ -539,6 +553,7 @@ export default {
   data () {
     return {
       autoFiller: null, // will be instance of autoFiller class
+      autofillAudit: null, // will hold recent autofill audit, in case user wants to dump it with Alt-X
       showSeqTags: false,
       seqTagsWorking: '',
       cambioShiftSelected: -4,
@@ -586,19 +601,24 @@ export default {
       meanGapImproved: 0,
       gearOptions: [
         { value: null, text: 'Please select a gear:' },
+        { value: 'accent', text: 'Accent', style: { color: 'green', backgroundColor: 'white' } },
         { value: 'building', text: 'Building', style: { color: 'yellow', backgroundColor: '#adb5bd ' } },
-        { value: 'mellow', text: 'Mellow', style: { color: '#343a40', backgroundColor: 'white' } }, // dark gray
-        { value: 'song', text: 'Song', style: { color: '#6c757d', backgroundColor: 'white' } }, // medium gray
-        { value: 'refresh', text: 'Refresh', style: { color: 'green', backgroundColor: 'white' } },
         { value: 'climax', text: 'Climax', style: { color: 'teal', backgroundColor: 'white' } },
+        { value: 'mellow', text: 'Mellow', style: { color: '#343a40', backgroundColor: 'white' } }, // dark gray
+        { value: 'rumba', text: 'Rumba', style: { color: '#6c757d', backgroundColor: 'white' } }, // medium gray
         { value: 'spicy', text: 'Spicy', style: { color: 'red', backgroundColor: 'white' } }, // this can be despelote - call it sensual?
         { value: 'cambio', text: 'Cambio (only for meter change!)', style: { color: 'blue', backgroundColor: 'white' } }
       ]
     }
   },
   props: ['cardHeight', 'waveSurfer', 'waveIsLoaded', 'stateRecordingBeats', 'awaitingBeatsSave',
-    'scrollMe', 'tellMusicChanged', 'bAlreadyWarnedFlag', 'showMusicLoader'],
+    'scrollMe', 'tellMusicChanged', 'bAlreadyWarnedFlag', 'showMusicLoader', 'autofillAuditSongs'],
   watch: {
+    autofillAuditSongs (newValue) {
+      // the same code is used to dump autofill steps by either compoenent (Songs or Measures)
+      //  by reusing this key
+      this.autofillAudit = newValue
+    },
     seqTagsWorkingTooLong (newValue) {
       if (newValue) {
         this.$bvToast.toast('Too long!', {
@@ -621,13 +641,13 @@ export default {
     },
     $route (to, from) {
       // on tab change (route change)
-      this.exitComboGraph()
+      this.comboFlowShown = false
     },
     RMEFolder (newValue) {
-      this.exitComboGraph()
+      this.comboFlowShown = false
     },
     tellMusicChanged (newValue) {
-      this.exitComboGraph()
+      this.comboFlowShown = false
     },
     movesCombosOrAuto (newValue) {
       console.log(newValue)
@@ -820,6 +840,14 @@ export default {
     MP3FileName () {
       return this.$store.state.beatsAndSequenceStore.MP3FileName
     },
+    SEQFileExists () {
+      // const seqFilePath = path.join(RMDIR, this.RMEFolder, 'secuencias_para_canciones', path.basename(this.currentFile,
+      //   path.extname(this.currentFile)) + '.seq')
+      // SEQSPEC () { return path.join(RMDIR, this.RMEFolder, 'secuencias_para_canciones', '*.seq') },
+      const mypath = this.$store.state.beatsAndSequenceStore.MP3FileName
+      const seqFile = path.basename(mypath, path.extname(mypath)) + '.seq'
+      return discDataHelper.fileExists(path.join(RMDIR, this.RMEFolder, 'secuencias_para_canciones', seqFile))
+    },
     MP3FileNameBPM () {
       return this.$store.state.beatsAndSequenceStore.MP3FileNameBPM
     },
@@ -990,9 +1018,6 @@ export default {
       this.modalEditShown = false
       this.subSaveBeats()
     },
-    exitComboGraph () {
-      this.comboFlowShown = false
-    },
     checkForWeird (beatIdx) {
       // gaps that are suspiciously inconsistent
       if (
@@ -1009,7 +1034,7 @@ export default {
       this.currentComboHdr = item
       this.modalEditShown = false
       this.autoFiller = new AutoFiller(this.lstSeqEdited, this.editedMoves, this.editedCombos, this.lstTimesWork, this.currentBeatIndex)
-      this.autoFiller.genOkPerms(this.currentComboHdr)
+      this.autoFiller.genOkPerms([], this.currentComboHdr)
       this.comboFlowShown = true // opens dialog to select which generated permutation of the selected combo
     },
     callsModeTooltipInMargins () {
@@ -1138,6 +1163,7 @@ export default {
     },
     getItemTitle (item, index) {
       let sTitle = ''
+      if (this.$store.state.settingsStore.settings.presetOrAutofill === 2) sTitle += 'AUTOFILL in effect\r\n'
       sTitle += 'Beat: ' + (item.comment || '(no comment)') + ' [gear=' + item.gear + ']'
       if (this.lstSeqEdited[index]) {
         const fullMove = this.$store.getters.getMoveByNameObj({ $: { name: this.lstSeqEdited[index].$.name } })
@@ -1183,7 +1209,7 @@ export default {
         schemeDate: schemeDate,
         authorId: authorId,
         authorDate: new Date().toISOString(),
-        seqTags: this.seqTagsWorking
+        seqTags: this.seqTags
       })
     },
     deleteThisMove () {
@@ -1226,7 +1252,7 @@ export default {
       this.comboFilter = null
 
       this.subSaveSeq()
-      this.exitComboGraph()
+      this.comboFlowShown = false
     },
     onMoveRowClicked (item, index) {
       // movePicker dialog row was clicked
@@ -1249,13 +1275,16 @@ export default {
       this.subSaveSeq()
     },
     calcVariant (item) {
-      if (item.gear === 'song') {
+      if (this.$store.state.settingsStore.settings.presetOrAutofill === 2) {
+        return 'warning'
+      }
+      if (item.gear === 'rumba') {
         return 'outline-secondary'
       } else if (item.gear === 'mellow') {
         return 'outline-dark'
       } else if (item.gear === 'spicy') {
         return 'outline-danger'
-      } else if (item.gear === 'refresh') {
+      } else if (item.gear === 'accent') {
         return 'outline-success'
       } else if (item.gear === 'climax') {
         return 'outline-info'
@@ -1267,6 +1296,32 @@ export default {
     },
     analyzeBeats (bCalcOnly) {
       analyzeBeatsImpl.call(this, bCalcOnly)
+    },
+    dumpLastAutofill () {
+      const getFormattedTime = () => {
+        // from SO make a date string for use in a filename
+        var today = new Date()
+        var y = today.getFullYear()
+        // JavaScript months are 0-based.
+        var m = ('0' + (today.getMonth() + 1)).slice(-2)
+        var d = ('0' + (today.getDate())).slice(-2)
+        var h = ('0' + (today.getHours())).slice(-2)
+        var mi = ('0' + (today.getMinutes())).slice(-2)
+        var s = ('0' + (today.getSeconds())).slice(-2)
+        return y + m + d + '-' + h + mi + s
+      }
+      const comboData = JSON.stringify(this.autofillAudit, null, 2)
+      const comboJSON = path.join(DLDIR, '/RM-SONGS-DUMP-AUTOFILL-' + getFormattedTime() + '.json')
+      const that = this
+      fs.writeFileSync(comboJSON, comboData, err => {
+        if (err) {
+          throw err
+        }
+      })
+      that.$bvToast.toast('Autofill result saved in Downloads folder', {
+        title: 'AUTOFILL',
+        autoHideDelay: 3000
+      })
     },
     keyDownHandler (event) {
       const kcLeft = 37
@@ -1286,6 +1341,11 @@ export default {
             this.modePerRadios = 'gearMode' // G = gears (gearMode)
           } else if (event.code === 'KeyC') {
             this.modePerRadios = 'callsMode' // C = calls (callsMode)
+          } else if (event.code === 'KeyX') {
+            this.$bvModal.msgBoxConfirm('Dump last autofill to Downloads folder: Are you sure?')
+              .then(value => {
+                this.dumpLastAutofill()
+              })
           }
         }
         if (event.keyCode === kcSpace) {
@@ -1334,7 +1394,7 @@ export default {
             }
           }
         } else {
-          if (!event.keyCode === kcF4) event.preventDefault() // "space" "enter" can accidently click a button or scroll, but we need to allow alt-F4 to close
+          if (!event.keyCode === kcF4) event.preventDefault() // "space" "enter" can be squelched can accidently click a button or scroll, but we need to allow alt-F4 to close
         }
       } else if (this.stateRecordingBeats) {
         if (event.keyCode === kcSpace) { // space key
@@ -1396,6 +1456,13 @@ export default {
     },
     details (index) {
       // currentItemCanInsertMove
+      if (this.$store.state.settingsStore.settings.presetOrAutofill === 2) {
+        this.$bvToast.toast('Autofill mode, no actions allowed', {
+          title: 'AUTOFILL',
+          autoHideDelay: 4000
+        })
+        return
+      }
       this.currentItem = _cloneDeep(this.lstTimesWork[index])
       this.$set(this.currentItem, 'boing', false) // this is a clone, so we don't need to do this in VUEX.
       // but still we save this item later... so ensure it doesn't get saved with the boing TRUE (makes highlight in GUI)
@@ -1502,7 +1569,7 @@ export default {
           this.currentBeatIndex = 2 // give the dancers a few seconds, like IRL
           this.autoFiller = new AutoFiller(this.lstSeqEdited, this.editedMoves, this.editedCombos, this.lstTimesWork, this.currentBeatIndex)
           const [allMoves, audit] = this.autoFiller.autoFill()
-          console.log(audit)
+          this.autofillAudit = audit // from here, it can be dumped with Alt-X
           let offs = 0
           for (let i = 0; i < allMoves.length; i++) {
             if (allMoves[i]) {
@@ -1541,7 +1608,8 @@ export default {
         lstTimes: beatsToSave || this.lstTimesWork,
         date: new Date().toISOString(),
         RMEfolder: this.RMEFolder,
-        authorId: authorId
+        authorId: authorId,
+        spotifySongId: this.$store.state.beatsAndSequenceStore.spotifySongId
       }
       this.$store.commit('PERSIST_BEATS', payload)
     },
