@@ -59,8 +59,8 @@
     <b-modal :title="RMEFolder? RMEFolder.substring(7) : 'no folder selected'" v-model="bShowConfigProblem" @ok="getData('sample.zip')">
        <p class="my-4">The data folder "{{RMEFolder ? RMEFolder.substring(7) : ''}}" and subfolders were not found.  </p>
       <div v-if="schemesCount === 0">
-        <p>NOW: We'll get starting beats and schemes for you... </p>
-        <p><em>Including sample music file for your Music folder... Load it from your Music folder to experiment!</em></p>
+        <p>NOW: We'll get the basic rueda scheme for you... </p>
+        <p><em>Including a sample music file for your Music folder "RM Sample.mp3"... Load it from your Music folder to experiment!</em></p>
         <p>Click OK to continue... </p>
       </div>
       <div v-else>

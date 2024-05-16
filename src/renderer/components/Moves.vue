@@ -21,7 +21,7 @@ i18n trial case for translations, works ok but not followed up!  Not a priority.
       <b-card>
         <div>
           <input type="radio" id="moveMode" value="moveMode" v-model="modePerRadios">
-          <label for="moveMode" title="Moves for this scheme">Moves</label>
+          <label for="timeMode" title="Moves for this scheme">Moves</label>
           <input type="radio" id="comboMode" value="comboMode" v-model="modePerRadios">
           <label for="comboMode" title="Combos of moves in this scheme">Combos</label>
           <b-btn v-if="!!visibleMoves && !comboFlowShown" variant="success" class="m-1" @click="addNew" title="Create New Move/Combo">Create New

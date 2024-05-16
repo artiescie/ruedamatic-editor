@@ -25,6 +25,8 @@ CREATE COMBO in MOVES TAB
        The algorithm is then allowed to choose from whatever perm fits the point of insertion
        Fits: Alogirithm asses the sync points.  Where gear = 'accent', or 'climax'.
           If we can break to new move at all but 1 "accent", and exacty at a single "climax" shift, it's a fit.
+       Fits: Alogirithm asses the sync points.  Where gear = 'accent', or 'climax'.
+          If we can break to new move at all but 1 "accent", and exacty at a single "climax" shift, it's a fit.
        If more than one possibility, a choice is made - randomly... but weighted by the branches and weights in the Combo graph.
 
 USE OF COMBOS in SONGS tab
