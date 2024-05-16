@@ -43,7 +43,7 @@ that was loaded from a file on this local computer" class="col-3">
 
         <b-col title="Show only music that is NOT slow (beats-per-minute)" class="col-3">
           <b-form-checkbox title="Show only music I have loaded from a file on this computer" v-model="rowCriteria.onlyLocal">only Downloaded music</b-form-checkbox>
-          <b-form-checkbox title="Show only music that is not slow (beats-per-minute)" v-model="rowCriteria.onlyWithCalls">only songs with Calls</b-form-checkbox>
+          <b-form-checkbox title="Show only music that is not slow (beats-per-minute)" v-model="rowCriteria.onlyWithCalls">songs with Preset calls</b-form-checkbox>
         </b-col>
       </div>
       <b-table striped hover sort-by="filename " small :items="beatsFiles" :fields="fields" :current-page="currentPage" :per-page="perPage"
@@ -73,8 +73,13 @@ that was loaded from a file on this local computer" class="col-3">
             title="No Buy URL: Wizards should set it, so regular Caller users know where to buy the song." @click="showBuyDialog(row)" class="py-0">???</b-button>
         </template>
         <template v-slot:cell(spotifySongId)="row">
-          <b-btn size="sm" variant="light" title="The Spotify Song ID.  Required to play your sequence on the Spotify app RM Spot" class="py-0" @click="showSpotifyIdDialog(row)">
-            <v-icon v-if="!validSpotifyId(row.item.spotifySongId)" class="m-1" name="exclamation-triangle"/>Spot ID
+          <b-btn v-if="!validSpotifyId(row.item.spotifySongId)" size="sm" variant="warning" :title="'The Spotify Song ID.  Required to play your sequence on the Spotify app RM Spot. \n' +
+              row.item.spotifySongId" class="py-0" @click="showSpotifyIdDialog(row)">
+            <v-icon class="m-1" name="exclamation-triangle"/>Spot ID
+          </b-btn>
+          <b-btn v-else size="sm" variant="warning" :title="'The Spotify Song ID.  Required to play your sequence on the Spotify app RM Spot. \n' +
+              row.item.spotifySongId" class="py-0" @click="showSpotifyIdDialog(row)">
+            {{row.item.spotifySongId.substr(0,4) + '…'}}
           </b-btn>
         </template>
       </b-table>
@@ -95,7 +100,7 @@ that was loaded from a file on this local computer" class="col-3">
     </b-modal>
     <b-modal v-else id="getBuyURL" size="lg" title="Get this music" @hidden="showingBuyDialog=false" ok-only>
       <div v-if="buySongURLInput">
-        <p><em>{{buySongURLInput}}</em>em></p>
+        <p><em>{{buySongURLInput}}</em></p>
         <p>To find out how to buy and download this <em>exact</em> song from iTunes - click here:
           <b-btn variant="success" title="URL to buy the song" class="py-0" @click="opn(buySongURLInput)"
             >Song info
@@ -176,27 +181,49 @@ export default {
       return this.$store.state.beatsAndSequenceStore.MP3URL
     },
     fields () {
-      const retVal = [
-        {
-          key: 'filename',
-          sortable: true,
-          tdAttr: 'tdCommentTitle',
-          formatter: comment => {
-            const ELLIPSIS_CHARACTER = '\u2026'
-            const max = 72
-            if (comment.length > max) {
-              return comment.slice(0, max - 1) + ELLIPSIS_CHARACTER
-            } else {
-              return comment
+      // user === wizard will see the Spotify ID column
+      const retVal =
+        this.userType === '2' ? [
+          {
+            key: 'filename',
+            sortable: true,
+            tdAttr: 'tdCommentTitle',
+            formatter: comment => {
+              const ELLIPSIS_CHARACTER = '\u2026'
+              const max = 72
+              if (comment.length > max) {
+                return comment.slice(0, max - 1) + ELLIPSIS_CHARACTER
+              } else {
+                return comment
+              }
             }
-          }
-        },
-        { key: 'tags', label: 'Seq Tags', sortable: true, tdAttr: 'tdTags' },
-        { key: 'bpm', label: 'bpm', sortable: true, tdAttr: 'tdBpm' },
-        { key: 'link', sortable: true },
-        { key: 'mp3URL', label: 'Buy', sortable: false },
-        { key: 'spotifySongId', sortable: true }
-      ]
+          },
+          { key: 'tags', label: 'Seq Tags', sortable: true, tdAttr: 'tdTags' },
+          { key: 'bpm', label: 'bpm', sortable: true, tdAttr: 'tdBpm' },
+          { key: 'link', sortable: true },
+          { key: 'mp3URL', label: 'Buy', sortable: false },
+          { key: 'spotifySongId', sortable: true }
+        ]
+          : [
+            {
+              key: 'filename',
+              sortable: true,
+              tdAttr: 'tdCommentTitle',
+              formatter: comment => {
+                const ELLIPSIS_CHARACTER = '\u2026'
+                const max = 72
+                if (comment.length > max) {
+                  return comment.slice(0, max - 1) + ELLIPSIS_CHARACTER
+                } else {
+                  return comment
+                }
+              }
+            },
+            { key: 'tags', label: 'Seq Tags', sortable: true, tdAttr: 'tdTags' },
+            { key: 'bpm', label: 'bpm', sortable: true, tdAttr: 'tdBpm' },
+            { key: 'link', sortable: true },
+            { key: 'mp3URL', label: 'Buy', sortable: false }
+          ]
       return retVal
     }
   },
@@ -232,11 +259,11 @@ export default {
       }
     },
     getLoadTitle (link) {
-      return `LOCATION: ${link}
+      return `LOOKING IN: ${link}
 If that isn't where your song is, or your song has no beats yet:
-  click BROWSE, find the matching file: we'll remember the one you pick.
-MIC icon: CALLS for this song are set in this scheme.
-SLASH icon: NO CALLS are set.
+  click BROWSE, find the matching music: we'll remember the one you pick.
+MIC icon: There are PRESET CALLS for this song in this scheme.
+NO MIC icon: There are NO PRESET CALLS.
 BEATS: Only songs with beats are listed.  To set beats, click "To Workbench" on this SONGS tab.  `
     },
     manageLogicOnlySlow (value) {
@@ -296,11 +323,11 @@ BEATS: Only songs with beats are listed.  To set beats, click "To Workbench" on 
         this.$emit('persist-revised-beats') // **COMMIT**
         setTimeout(this.refresh, 300) // cheaper await !
       } else {
-        // not the current file, replace-in-file will be used
+        // must be able to change any song, not the currently loaded one, replace-in-file will be used
         const builder = new xml2js.Builder()
         const newDate = new Date().toISOString()
         const authorId = this.$store.state.settingsStore.settings.authorId
-        const xmlNewTag = builder.buildObject({ authorAndSongURL: { $: { date: newDate, authorId: authorId }, _: this.buySongURLInput } })
+        const xmlNewTag = builder.buildObject({ authorAndSongURL: { $: { date: newDate, authorId: authorId, spotifySongId: this.spotifySongId }, _: this.buySongURLInput } })
         const element = xmlNewTag.replace(/<?.*\n/gm, '')
         const file = path.basename(this.buySongURLFileName, path.extname(this.buySongURLFileName)) + '.xml'
         // eslint-disable-next-line no-unused-vars
@@ -344,8 +371,6 @@ BEATS: Only songs with beats are listed.  To set beats, click "To Workbench" on 
         const embFile = he.decode(args[1])
         // eslint-disable-next-line no-unused-vars
         const localBeatsFile = he.decode(path.basename(args[6]))
-        // they won't get the music for the RM Sample file!
-        // eslint-disable-next-line no-constant-condition
         let bpm, spotifySongId
         let tags = ''
         let seqExists = false
@@ -417,13 +442,11 @@ BEATS: Only songs with beats are listed.  To set beats, click "To Workbench" on 
         to: (...args) => lookin(args), // here the beatsFiles array is populated
         dry: true // dry-run, no real replace happens!
       })
-      if (that.beatsFiles.length !== results.length) {
+      if (this.beatsFiles.length !== results.length) {
         const diff = results.map(r => path.basename(r.file, '.xml')).filter(b => !this.beatsFiles.map(f => path.basename(f.filename, path.extname(f.filename))).includes(b))
         this.$bvToast.toast('Beats files with invalid content: ' + diff.join('//'), { title: 'Error' })
       }
       this.totalRows = this.beatsFiles ? this.beatsFiles.length : 0
-      // const xmlFiles = results.map(item => path.basename(item.file))
-      // console.log('XML files: ' + xmlFiles)
     },
     tdBpm (value, key, item) {
       const getBg = (value) => {

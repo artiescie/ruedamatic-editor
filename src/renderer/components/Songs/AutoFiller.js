@@ -1,7 +1,25 @@
 /* eslint-disable */
-// Combos and perms - our special use of the words
+// THIS MODULE IS SHARED,
+//      so changes should be tested for all these:
+//   * RME interactive autofill based on selected combo, generates moves that can be saved in SEQ files
+//   * RME automatic autofill of an entire song, in AUTOFILL mode (see the Dashboard) where moves are NOT saved in SEQ files
+//   * RME testing, triggered by "Combos?" button on Dashboard, which tests all Combos in the selected scheme
+//       to see how they would fit each beats file in the RM environment.  Leaves result audit files in Downloads folder.
+//   * RMS in autofill mode, automatically fills each song
+// Also note that RME is a Vue2 based codebase, with Standard style (lining required no semicolons at EOL, and single quootes)
+//    RMS was based on a Vue3 project, using the newer composition API, and also based on TYPESCRIPT. linting expecting double quotes and colons.
+//    We use the Typescript plain js module enabling  in order to include this code in RMS project
+//    So even though this module is used in both projects, it follows mainly the rules of RME project
+//
+// TERMS:
+// RME: the PC app RuedaMatic Editor
+// RMS: the web app RM-Spot
+// (in Beats) a "SHIFT" is one the gears of ["accent"|"climax"|"spicy"];
+//            an "UPSHIFT" is one of "climax" or "spicy"
+// Combos and perms: NOTE our special use of the words!
 // "Combo" here is basically the (mermaid.js) simple tree of possible combinations where all nodes are moves
-// "Perm" is any single path through the tree to an end node
+// "Perm" is any single path through the tree to an end node.  Sometimes we attach range of possible lengths for an extendable move
+//     and each length will give rise to a separate perm.  We use cartesian product to generate our perms.
 // We generate all the perms possible, then iterate throough them doing our "match" tests
 // okPerms array will hold the Perms that pass the test, for the given song and index into the song beats
 
@@ -10,16 +28,16 @@
 //    - used as the basic main tool of "dancing to the music"
 //    - extendable moves have a setupbars field
 //    - algorithm fills the song one PERM at a time
-//    - within 1 PERM, a move PRECEDING an extendable will try to "borrow" the setupbars
-//    - effect: the music "shift" will try to hit the repetitive part of the extendable move, the setup part has already happened
+//    - within 1 PERM, a move PRECEDING an extendable with setupbars will try to "borrow" the setupbars
+//    - effect: the music "shift" will try to hit the main part of the move,
 //    - EFFECTS ON DESIGN:
-//       - TREE: before an extendable, provide paths of different lengths to reach the extendable
+//       - TREE: before a move with setupbars, provide paths of different lengths to reach the move
 //       - BEATS: (any tips?)
 //   GUAPEA or other BASIC moves
 //       - these moves are the only ones marked LEVEL 1.
 //       - autofill will NOT choose a path where level 1 move hits a shift
 
-// for us in rm-spot project, currently enforcing SEMICOLONS,
+// for rm-spot project, currently enforcing SEMICOLONS,
 //  to disable that for the file: try some version of this using the rule as named:
 //  /* eslint-disable no-use-before-define */
 
@@ -71,12 +89,12 @@ class AutoFiller {
     this.editedCombos = fixWebData ? this.adaptorFromRMSCombos(editedCombos) : editedCombos
     this.lstTimesAndGears = lstTimesWork // this is likely modified in genOkPerms - cleanGears: cleaned up for autoplay
     // main work we do for the calling program
+    this.allPerms = []
     this.okPerms = [] // all "permutations" of the combo that pass our tests, to fit the musicality of the given song
-    this.numAllPerms = 0 // all "permutations" of the combo that pass our tests, to fit the musicality of the given song
-    this.modTimesAndGears = [] // TODO: needed? modified version of lstTimesAndGears after genOkPerms
+    this.numPerms = 0 // all "permutations" of the combo that pass our tests, to fit the musicality of the given song
     // control parameters from constructor
     this.currentBeatIndex = currentBeatIndex // beat index into lstTimesAndGears
-    // these will likely be temporary
+    // these are working values that change
     this.selPermIndex = 0 // after user selects (in one old use case)
     this.passCount = -1 // reports the loop in shifter.check routine where a perm was selected
     this.aryFillSpots = []
@@ -87,7 +105,7 @@ class AutoFiller {
     //  NOTICE we use the raw data, before the fixWebData above!
     const mvCruceIndex = this.editedMoves.binarySearchIndex('Cruce', mv => mv.$.nameSorted)
     const mvFotoIndex = this.editedMoves.binarySearchIndex('Foto', mv => mv.$.nameSorted)
-    const mvContinueIndex = this.editedMoves.binarySearchIndex('Continue', mv => mv.$.nameSorted)
+    const mvRumbaIndex = this.editedMoves.binarySearchIndex('Rumba', mv => mv.$.nameSorted)
     if (mvCruceIndex < 0) {
       console.error('Cruce move was not found (needed for a short (1/2) measure)')
     } else {
@@ -110,9 +128,20 @@ class AutoFiller {
           setupbars: 0
       }
     }
+    if (mvRumbaIndex < 0) {
+      console.error('Rumba move was not found (needed for a short (1/2) measure)')
+    } else {
+      this.moveRumba = {
+          move: this.editedMoves[mvRumbaIndex].$.name,
+          length: parseInt(this.editedMoves[mvRumbaIndex].$.length),
+          lengthextendable: false,
+          level: parseInt(this.editedMoves[mvRumbaIndex].$.level),
+          setupbars: 0
+      }
+    }
   }
 
-  producePermutations (item) {
+  producePermutations (cboHdr) {
     const that = this
     // only a helper for genOkPerms
     // here, all possible permutations are generated
@@ -124,25 +153,27 @@ class AutoFiller {
     const cartesian = (a, b, ...c) => b ? cartesian(cartesianHelper(a, b), ...c) : a
 
     // Out of all the possibilities, paths and durations, select specific moves etc.
-    this.currCbo = _cloneDeep(this.editedCombos[item.$.name]) // we have to clone things where we want diff versions of state
+    // this.currCbo = _cloneDeep(this.editedCombos[cboHdr.$.name]) // we have to clone things where we want diff versions of state
+    this.currCbo = this.editedCombos[cboHdr.$.name] // try without cloning
     // traverse the combo tree, and keep track of the move sequences it contains
-    let seqCurr = [] // (repeatedly) accumulates moves and extra beats [{move: moveName, extra: nBeats}]
-    const seqCurrWrapper = {} // accum one sequence based on this combo {id:, length:, weight:, moves: [{name:, length:}, ...]}
-    seqCurrWrapper.hdr = {}
-    seqCurrWrapper.moves = []
+    let perm = [] // (repeatedly) accumulates moves and extra beats [{move: moveName, extra: nBeats}]
+    const permWrapper = {} // accum one sequence based on this combo {id:, length:, weight:, moves: [{name:, length:}, ...]}
+    permWrapper.hdr = {}
+    permWrapper.moves = []
 
-    const colSeq = {} // accum all sequences based on this combo {comboName:'', gears:[], combs: [{weight:, move: [{name:, length:}, ...]}]
-    colSeq.hdr = { baseCombo: '', min: 0, max: 0, gears: [] }
-    colSeq.products = []
+    const perms = {} // accum all sequences generated from this combo {format comboName:'', gears:[], combs: [{weight:, move: [{name:, length:}, ...]}]
+    perms.hdr = { baseCombo: '', min: 0, max: 0, gears: [] }
 
+    cboHdr.$.endNodes = {}
+    perms.products = []
     let weightCurr = 1
-
     const arrBranchTrail = [] // used to track unvisited branches
+
     let errMsg = '' // possible string for later
     // first node, Start node... should only have one child
     let currNode = { branch: 'node2', parent: this.currCbo.nodes.node1 } // always the real first move, no siblings
-    // loop over the nodes
-    while (currNode) { // break to exit loop
+    // loop over the nodes, building data structures
+    while (currNode) {
       const myMove = this.currCbo.nodes[currNode.branch]
       let localNodeEditTextWithoutMinMax
       let localNodeEditExtraTimeMin
@@ -174,8 +205,7 @@ class AutoFiller {
         setupbars = parseInt(this.editedMoves[moveIndex].$.setupbars || 0) // avoid NaN which isn't parsed to 0
         lengthextendable = cleanbool(this.editedMoves[moveIndex].$.lengthextendable) // avoid NaN which isn't parsed to 0
       } catch (e) {
-        debugger
-        errMsg = 'Illegal move in combo: ' + item.name + ', move: ' + localNodeEditTextWithoutMinMax
+        errMsg = 'Illegal move in combo: ' + cboHdr.name + ', move: ' + localNodeEditTextWithoutMinMax
         console.error(errMsg)
         // this.$bvToast.toast(errMsg, { title: 'Error' })
         throw (e)
@@ -185,9 +215,9 @@ class AutoFiller {
         for (let xBeats = localNodeEditExtraTimeMin; xBeats <= localNodeEditExtraTimeMax; xBeats++) {
           moveCurr.push({ move: localNodeEditTextWithoutMinMax, length: moveLength + xBeats, upshift: myMove.allowUpshift, setupbars: setupbars, lengthextendable: lengthextendable, level: level })
         }
-        seqCurr.push(moveCurr)
+        perm.push(moveCurr)
       } else { // or  // if there is no length range: just the bare move length
-        seqCurr.push([{ move: localNodeEditTextWithoutMinMax, length: moveLength, upshift: myMove.allowUpshift, setupbars: setupbars, lengthextendable: lengthextendable, level: level }])
+        perm.push([{ move: localNodeEditTextWithoutMinMax, length: moveLength, upshift: myMove.allowUpshift, setupbars: setupbars, lengthextendable: lengthextendable, level: level }])
       }
 
       // DISCOVER BRANCHES: links discovered here, to be visited in future
@@ -218,35 +248,41 @@ class AutoFiller {
         arrBranchTrail.push(...myMove.next.map((n, idx) => {
           // update the parent
           const cloneMove = _cloneDeep(myMove) // freeze the sequence state - it is NOT shared with other parts of the graph
-          cloneMove.seqAccum = _cloneDeep(seqCurr)
+          // const cloneMove = myMove // freeze the sequence state - it is NOT shared with other parts of the graph
+          cloneMove.seqAccum = _cloneDeep(perm)
+          // cloneMove.seqAccum = perm
           return { branch: n, parent: cloneMove, weight: weightCurr * weights[idx] }
         }))
       } else {
-        // END of a sequence
+        // END of a sequence (single branch)
         // wrap it and stash it
-        seqCurrWrapper.hdr = {} // accum one sequence based on this combo {id:, length:, weight:, moves: [{name:, length:}, ...]}
-        seqCurrWrapper.moves = []
-        let normSeqCurr = cartesian(...seqCurr)
-        if (!Array.isArray(normSeqCurr[0])) {
-          normSeqCurr = normSeqCurr.map(mv => [mv])
-          console.log('Single move in combo, normalize to an array!')
-          // // this.$bvToast.toast('Selected Combo is incomplete or invalid, please check!', { title: 'Error' })
-          // return
+        permWrapper.hdr = {} // accum one perm based on this combo {id:, length:, weight:, moves: [{name:, length:}, ...]}
+        permWrapper.moves = []
+        let normPerm = cartesian(...perm)
+        if (!Array.isArray(normPerm[0])) { // Single perm in combo, normalize to an array!
+          normPerm = normPerm.map(mv => [mv])
         }
-        normSeqCurr.forEach(s => {
+        // SET SOME comboheader header data, and also data structures for metrics/diagnostics
+        for (let sqix = 0; sqix < normPerm.length; sqix++ ) {
+          const s = normPerm[sqix]
           const comboLen = s.reduce((acc, cval) => acc + cval.length, 0)
           // let's pack some info in the id field: shorthand for what it contains
-          const comboId = s.map(m => m.move.substr(0, 3) + (m.upshift ? '🔥' : '') + m.length).join('').replace(' ', '') + '-' + comboLen
-          seqCurrWrapper.hdr = {}
-          seqCurrWrapper.hdr = { id: comboId, length: comboLen, weight: weightCurr / normSeqCurr.length }
-          seqCurrWrapper.moves = []
-          seqCurrWrapper.moves.push(_cloneDeep(s))
-          colSeq.products.push(_cloneDeep(seqCurrWrapper))
-          colSeq.hdr.min = parseInt(this.currCbo.$.minLength)
-          colSeq.hdr.max = parseInt(this.currCbo.$.maxLength)
-          colSeq.hdr.baseCombo = this.currCbo.$.name
-          colSeq.hdr.gears = this.currCbo.$.gears
-        })
+          //  currNode.branch is currently the unique identifier of end node
+          const comboId = s.map(m => m.move.substr(0, 3) + (m.upshift ? '🔥' : '') + m.length).join('').replace(' ', '') + '-' + currNode.branch.substr(4) + '-' + comboLen
+          permWrapper.hdr = {}
+          permWrapper.hdr = { id: comboId, length: comboLen, weight: weightCurr / normPerm.length }
+          permWrapper.moves = []
+          permWrapper.moves.push(_cloneDeep(s))
+          // permWrapper.moves.push(s)
+          perms.products.push(_cloneDeep(permWrapper))
+          // perms.products.push(permWrapper)
+          if (!cboHdr.$.endNodes[currNode.branch]) cboHdr.$.endNodes[currNode.branch] = { permCount: 0, permDict: {} }
+          if (!cboHdr.$.endNodes[currNode.branch].permDict[permWrapper.hdr.id]) cboHdr.$.endNodes[currNode.branch].permDict[permWrapper.hdr.id] = 0
+          perms.hdr.min = parseInt(this.currCbo.$.minLength)
+          perms.hdr.max = parseInt(this.currCbo.$.maxLength)
+          perms.hdr.baseCombo = this.currCbo.$.name
+          perms.hdr.gears = this.currCbo.$.gears
+        }
       }
       // NEXT NODE, prepare for the WHILE loop: set currNode
       // console.log(currNode.branch, JSON.stringify(arrBranchTrail.map(b => b.branch)))
@@ -255,13 +291,13 @@ class AutoFiller {
         // here we reuse the parents max-min calculated previously,
         // since it is the accum min/max to this branching point,
         // it represents our starting min/max as we follow a different branch from the same node
-        seqCurr = currNode.parent.seqAccum // TODO: build this
+        perm = currNode.parent.seqAccum
         weightCurr = currNode.weight
       } else {
         currNode = null // breaks // loop is done: set results
       }
     }
-    return colSeq
+    return perms
   }
 
   getShifts (maxBeats) {
@@ -273,16 +309,16 @@ class AutoFiller {
       let max = 0
       for (let i = iStart; i < that.lstTimesAndGears.length; i++) {
         max = i - iStart
-        if (that.lstSeqEdited[i] || 'cambio' === that.lstTimesAndGears[i].gear) {
+        if (that.lstSeqEdited[i] || ('cambio' === that.lstTimesAndGears[i].gear)) {
           // if there's a move already in range
-          //  stop before we hit it
+          //   remember it, so we stop before we hit it
           break
         }
       }
-      // if we got to the end, add 1 for the last ite,
+      // if we got to the end, add 1 for the last iter,
       return max + 1
     }
-    // return a profile of the length of the largest perm
+    // return a profile of shifts, as far as the length of the longest perm
     // it has an ordered array of objects {pos: n, gear: 'string'}
     // if there's already a move in the seq ahead... we won't overwrite it... look for one here:
     const maxClear = findNextMove(this.currentBeatIndex)
@@ -294,7 +330,6 @@ class AutoFiller {
         curGear = this.lstTimesAndGears[ptr].gear
       } catch (error) {
         console.log('getShifts - exceeded end of beats, check value of limit "lim"')
-        // debugger
       }
       // if we pre-arrange that cambio gear is already assigned the Medio move in sequence...
       //   THEN we can REMOVE this entire conditional
@@ -307,7 +342,7 @@ class AutoFiller {
         // break
       }
       if (ptr > 0) {
-        if (curGear === 'refresh' || curGear === 'climax' || curGear === 'spicy') {
+        if (curGear === 'accent' || curGear === 'climax' || curGear === 'spicy') {
           if (ptr > this.lstTimesAndGears[ptr - 1].gear !== curGear) {
             if (ptr > this.currentBeatIndex) {
               colShifts.push({ pos: ptr - this.currentBeatIndex, gear: curGear })
@@ -323,20 +358,22 @@ class AutoFiller {
     return colShifts
   }
 
-  genOkPerms (cboHdr) {
-    // The AutoFiller sequence for the player is NOT actually changed, but the raw data is prepared here
-    // We assess each perm if the param Combo, against the song beats (gears) using our rules
-    //   We also pick one at random
+  genOkPerms (audit, cboHdr) {
+    // depends on globals: currentBeatIndex, lstTimesAndGears
+    // orig purpose: user clicks a beat of a song, in calls mode, and picks Combo mode
+    //   then selects a combo.  This will generate all the perms of the combo that fit the song
+    //   using rules implemented here
+    // 2024: now used by AutoFill, which divides the song into coniguous beat sections, and calls this repeatedly
+    //   to fill each section.
+    //
+    // We create all perms of the parameter Combo, and assess each against the song beats(gears) using our rules
+    //  From those that pass, we also pick one at random to be actually applied if the caller wants to do that
     //  The values are stored at:
-    //     this.okPerms
-    //     this.selPermIndex
-    // **  This info is used by autoFill routine to set the player move sequence
-    const that = this // for use in some nested scopes
-
+    //     this.okPerms, this.selPermIndex
     this.okPerms = [] // for all the perms that PASS THESE TESTS
     this.selPermIndex = -1 // invalid sentinel value
 
-    let audit = '' // the audit can surface the reason for rejecting a perm, so far not used.
+    const that = this // for use in some nested scopes
     const timeStart = new Date() // for runtime profiling
 
     // songShifts is going to be at least 1 length: the (artificial) stop shift, at the end
@@ -346,13 +383,14 @@ class AutoFiller {
     // producePermutations generate all possible combo "permutations"
     // and then filter ones whose move gears conincide with the song's gears
     const perms = this.producePermutations(cboHdr)
-    this.numAllPerms = perms.products.length
+    this.allPerms.push(perms)
+    this.numPerms = perms.products.length
     // prep: look through perms: are there any (more than zero) that have
     //  marked a move as "upshift"?  If so, save a flag.  When we filter eligible perms
     //  we will select ONLY those that match a climax/spicy bar in the songShifts
     // console.log('perms: ' + JSON.stringify(perms.products.length))
     // maxLength we check is the length allowed to end of song; or (if later moves exist already) just to the next move
-    console.log('songShifts: ' + JSON.stringify(songShifts) + ', maxLength: ' + maxLength)
+    // console.log('songShifts: ' + JSON.stringify(songShifts) + ', maxLength: ' + maxLength)
     // filter every perm for matching the songShifts
 
     // Step thrgough ALL PERMUTATIONS
@@ -371,32 +409,31 @@ class AutoFiller {
       perm = perms.products[j]
       // NOW accept or reject the perm
       if (perm.hdr.length > maxLength) {
-        audit = 'NO ROOM for this perm at position - ' + this.currentBeatIndex
-        break // *** BAIL *** not enough space
+        audit.push('p-~ ' + perm.hdr.id + ' REJECT - before checking, we know there is NO ROOM at position - ' + this.currentBeatIndex)
+        continue // *** BAIL *** not enough space
       }
-      // passCount 0: upshift in perm REQUIRES upshift in song
-      // passCount 1: accept a refresh shift as a match (second pass allows mismatch)
-      // TODO: do we know perm.moves is always a non-empty array ?
-      // all the moves of the perm are at perm.moves[0], due to conversion process
+      // work done by "screener" and "shifter"
+      // pass 1: upshift in perm REQUIRES upshift in song
+      // pass 2: accept a accent shift as a match (second pass allows mismatch)
+      // all the moves of the perm are at perm.moves[0] (due to XML-JSON conversion process)
 
-      // stateful helper screener
+      // top level routine loops throug perms
+      //   stateful helper 'screener' checks through perms
+      //   and contains helper 'shifter', checks through moves in the perm, vs beats in the song
 
       const screener = {
         accBeats: 0,
         borrowBeats: 0,
         // these values from shifter sub-object
-        // hitShift: null,
-        // missedShifts: [], // gets value from shifter sub-object
-        check: function (moveCurr, moveNext, movePrev, songShifts, that) {
+        check: function (locAudit, moveCurr, moveNext, movePrev, songShifts, that) {
           // last arg that is a ref to the AutoFiller object
-          let audit = ''
           let res = false
-          // screener computes the beats accumulator
+          // screener inits the beats accumulator. with the first move and any "borrowing"
           // AND calls the shifter
           // AND returns the shifter's return value
-          //   telling the caller if move is
+          //   telling the caller if perm is ACCEPTED or REJECTED
 
-          // arg1 always a new move.  ...rest of args may be nulls or objects
+          // arg2 always a new move.  moveNext, movePrev may or may not exist (null)
 
           // setupbars are "borrowed", deducted from previous beat length
           //  so that the setup is compplete before the coming beat
@@ -411,116 +448,102 @@ class AutoFiller {
           // here's where borrowbeats picks up its value
           if (moveNext && moveNext.setupbars) this.borrowBeats = moveNext.setupbars || 0
           this.accBeats += this.borrowBeats
-          ;[res, audit] = this.shifter.check(this.accBeats, moveCurr, moveNext, songShifts, that)
-          return [res, audit] // true or false
+          res = this.shifter.check(locAudit, this.accBeats, moveCurr, moveNext, songShifts, that)
+          return res // true or false
         },
         shifter: {
           // shifter loops through all the song shifts
-          // AND evals and returns the states [ok-so-far|misfit] (true|false)
+          // AND evals and returns the thumbs up or down
+          //    [ok-so-far - as it works through shifts]
+          //    [reject if any problem found, then finally accept]
           shiftIdx: 0,
-          missedShifts: [],
-          hitShift: null, // if accumulated beats hits a shift right on, we will return the shift object
-          check: function (accBeats, moveCurr, moveNext, songShifts, that) {
+          check: function (locAudit, accBeats, moveCurr, moveNext, songShifts, that) {
             // last arg that is a ref to the AutoFiller object
-            // ret true: ok so far, keep going | false: misfit, discard the parm
-            this.missedShifts = [] // start clean
-            this.hitShift = null
-            let audit = '' // clear for next pass
-            while (true) { // RETURN is the only exit we use
+            // ret 0: PERM REJECTED, misfit, break and go to next
+            // ret 1: KEEP GOING ...ok so far, pass in NEXT move
+            // ret 2: no more shifts to check, perm is OK
+            // while (true) { // stay here while we fill the current songShift TODO: kill this loop?  ONE PASS is all needed??
               // we are looping though the moves of a perm
               //   and manually stepping through the songshifts
-              //   to filter out incompatible "perms"
+              //   to filter incompatible "perms" with the song
               // THERE ARE 3 states as we step through here:
-              //  MISSED A SHIFT:
-              //    passCount 0 or 1: OK if moveCurr is lengthextendable and not level 1
-              //
+              //  MISSED A SHIFT
               //  DIRECT HIT ON A SHIFT
-              //    passCount 0: OK
-              //       if NOT level === 1
-              //         if climax/spicy UPSHIFT is matched by UPSHIFT moveNext from the perm
-              //           OR
-              //         if moveNext is extendable
-              //    passCount 1: OK if NOT level === 1
-              //
               //  STILL before next shift
-              //    passCount 0: OK if not extendable and level > 1(extendable and level > 1 should start at a shift)
-              //    passCount 1: any move OK
               //
               // Strategy:
-              //   Trying to get extendables to start on beat 1, to maximize effect of the setupbar handling
-              //   Trying to match climax / spicy wherever possible
+              //
+              //   Trying to get moves with setup to start the repetitive part on beat 1, to maximize effect
+              //   Simple moves, try to ensure there is a move start on beat 1
+              //    - unless that move is level 1: guapea, arriba, al centro: keep the blah moves from happening on 1
+              //   Trying to match climax / spicy wherever possible (pass 1 only)
               if (this.shiftIdx > songShifts.length - 1) {
-                audit = 'END of shifts'
-                return [true, audit]
+                locAudit.push('pa~ ' + perm.hdr.id + ' ACCEPT - before checking, we know this is END of shifts')
+                return 2 // ** EXIT HERE **
               }
 
               // CASE 1: we left an unmatched shift behind when we added the last perm move
               if (songShifts[this.shiftIdx].pos < accBeats) {
-                // pass zero or one
-                // if (moveCurr.lengthextendable && moveCurr.level !== 1) {
-                this.missedShifts.push(songShifts[this.shiftIdx])
-                audit = 'SHIFTER: MISSED shift: pos ' + songShifts[this.shiftIdx].pos
-                return [false, audit]
+                // passCount zero or one
+                locAudit.push('p-~ ' + perm.hdr.id + ' REJECT pass' + (that.passCount + 1)  + '- SHIFTER: MISSED shift: pos ' + songShifts[this.shiftIdx].pos)
+                return 0
 
                 // CASE 2: we hit a song shift bang on exactly
               } else if (songShifts[this.shiftIdx].pos === accBeats) {
                 if (moveNext && moveNext.level !== 1) {
                   if (that.passCount === 0) {
-                    if (songShifts[this.shiftIdx].gear === 'spicy' || songShifts[this.shiftIdx].gear === 'climax') {
+                    if (['spicy', 'climax'].includes(songShifts[this.shiftIdx].gear)) {
                       if (moveNext.gear === 'upshift') {
-                        audit = 'SHIFTER: pass 0, UPSHIFT match: ' + moveNext.move
-                        this.shiftIdx += 1
-                        return [true, audit]
+                        locAudit.push('p+~ ' + perm.hdr.id + ' CONTINUE pass' + (that.passCount + 1) + '- SHIFTER: UPSHIFT match: ' + moveNext.move)
+                        return 1
                       } else {
-                        audit = 'SHIFTER: pass 0, not an UPSHIFT match: ' + moveNext.move
-                        return [false, audit]
+                        locAudit.push('p-~ ' + perm.hdr.id + ' REJECT pass' + (that.passCount + 1)  + '- SHIFTER: not an UPSHIFT match: ' + moveNext.move)
+                        return 0
                       }
                     } else {
-                      audit = 'SHIFTER: pass 0, accepted here (any move except level 1): ' + moveNext.move
-                      this.shiftIdx += 1
-                      return [true, audit]
+                      locAudit.push('p+~ ' + perm.hdr.id + ' CONTINUE pass' + (that.passCount + 1) + '- SHIFTER: acceptable here (any move except level 1): ' + moveNext.move)
+                      return 1
                     }
                   } else { // passCount 1
-                    audit = 'SHIFTER: pass 1, accepted here (any move except level 1): ' + moveNext.move
-                    this.shiftIdx += 1
-                    return [true, audit]
+                    locAudit.push('p+~ ' + perm.hdr.id + ' CONTINUE pass' + (that.passCount + 1) + '- SHIFTER: acceptable here (any move except level 1): ' + moveNext.move)
+                    return 1
                   }
                 } else { // guapea, etc is level 1
                   if (moveNext) {
-                    audit = 'SHIFTER: level 1 move is not good enough: ' + moveNext.move
-                    return [false, audit] // guapea etc: not good enough to hit a shift!
+                    locAudit.push('p-~ ' + perm.hdr.id + ' REJECT pass' + (that.passCount + 1)  + '- SHIFTER: level 1 move is not good enough: ' + moveNext.move)
+                    return 0 // guapea etc: not good enough to hit a shift!
                   } else {
-                    audit = 'SHIFTER: No next move in this perm, pass'
-                    return [true, audit]
+                    locAudit.push('pa~ ' + perm.hdr.id + ' ACCEPT pass' + (that.passCount + 1)  + '- SHIFTER: No next move in this perm')
+                    return 2 // ** EXIT HERE **
                   }
+                this.shiftIdx += 1
                 }
 
                 // CASE 3: we haven't caught up to the next songshift yet
               } else if (songShifts[this.shiftIdx].pos > accBeats) {
                 // After adding the current move, we still haven't reached the next song shift.
-                // ==> OK fit
                 if (moveNext) {
                   if (that.passCount === 0) {
-                    if (moveNext.lengthextendable && moveNext.level > 1) {
-                      audit = 'SHIFTER: pass 0, extendable must fall on 1: ' + moveNext.move
-                      return [false, audit]
+                    if (['1', '2'].includes(moveNext.setupbars) && moveNext.level > 1) { // extending move with setupbars, s/b on 1 count
+                      locAudit.push('p-~ ' + perm.hdr.id + ' REJECT pass' + (that.passCount + 1)  + '- SHIFTER: we want move to fall on 1: ' + moveNext.move)
+                      return 0
                     } else {
-                      audit = 'SHIFTER: pass 0, move accepted for mid-shift: ' + moveNext.move
-                      return [true, audit]
+                      locAudit.push('p+~ ' + perm.hdr.id + ' CONTINUE pass' + (that.passCount + 1)  + '- SHIFTER: move accepted for mid-shift: ' + moveNext.move)
+                      this.shiftIdx += 1
+                      return 1
                     }
                   } else {
-                    audit = 'SHIFTER: pass 1, move accepted for mid-shift: ' + moveNext.move
-                    return [true, audit]
+                    locAudit.push('p+~ ' + perm.hdr.id + ' CONTINUE pass' + (that.passCount + 1)  + '- SHIFTER: move accepted for mid-shift: ' + moveNext.move)
+                    this.shiftIdx += 1
+                    return 1
                   }
                 } else {
-                  audit = 'SHIFTER: No next move in this perm, pass'
-                  return [true, audit]
+                  locAudit.push('pa~ ' + perm.hdr.id + ' ACCEPT pass' + (that.passCount + 1)  + '- SHIFTER: No next move in this perm')
+                  return 2
                 }
               }
-            }
-            // // a "shift" is 1 of ["refresh"|"climax"|"spicy"]; "upshift" is ONLY "climax" or "spicy"
-            // if (passCount === 0) return move && !move.upshift && ((shift.gear === 'climax') || (shift.gear === 'spicy'))
-            // else if (passCount === 1) return move && !move.upshift && ((shift.gear === 'refresh') || (shift.gear === 'climax') || (shift.gear === 'spicy'))
+            // }
+            debugger // shouldn't hit this: all cases should be handled with appropriate return values already
           }
         }
       }
@@ -531,25 +554,26 @@ class AutoFiller {
         screener.shifter.shiftIdx = 0
         let res = true // if still true after next loop, the perm is a keeper
 
-        // If there are clave shifts in the song, marked as gear = "cambio":
-        //  - set a special move at the cambio, "Cruce"
-        //  - place the next beat index right after the Cruce
-        //  - in addition to the original screener.check, submit each saved index separately
-        // Screener has logic to fill moves in avoiding the preset Cruce calls.
         for (let i = 0; i < perm.moves[0].length; i++) { // we've added item 0 before we started
-          ;[res, audit]= screener.check(
+            res = screener.check(
+            audit,
             perm.moves[0][i],
             perm.moves[0][i + 1] || null,
             perm.moves[0][i - 1] || null,
             songShifts,
             that // the AutoFiller object
           )
-          if (res === false) {
-            console.log('reject: ' + perm.hdr.id + ' pass-' + this.passCount + '-' + audit)
+          // kill this perm
+          if (res === 0 || res === 2) {
+            // 1 = move ok, keep going: i.e. checking the rest of perm
+            // 2 = perm is ok, break to outer loop where we save
             break
           }
         }
-        if (res) {
+        // we've checked all the moves in the perm
+        if (res === 1 || res === 2) {
+          // 1 = move ok, keep going: i.e. checking the rest of perm
+          // 2 = perm is ok in it's entirety: stop checking remaining moves
           this.okPerms.push(perm) // if all the moves fit, it's certified OK
           break
         }
@@ -561,7 +585,7 @@ class AutoFiller {
     // console.log('  - generate time/filter time ' + (timeToFilter - timeStart) + ' / ' + (timeFinish - timeToFilter) + ' ms')
     //  Do we have any fitting permutations at all?
     // okPerms has all the legal "permutations" per the song,
-    //   i.e. the move length vs refresh gears, upshift flag vs climax/spicy gears, and 'allow one miss' flag
+    //   i.e. the move length vs accent gears, upshift flag vs climax/spicy gears, and 'allow one miss' flag
 
     // select random perm
     //   hepler for randIndex: get total weight
@@ -579,8 +603,6 @@ class AutoFiller {
       return this.okPerms.length - 1
     }
     this.selPermIndex = randIndex()
-    const upshiftMsg = '' // in future: if upshift matching is enforced, report results
-    // console.log((upshiftMsg ? upshiftMsg + '  ' : '') + 'Field "selPermIndex" holds index of a random selection from a subset of: ' + this.okPerms.length)
   }
 
   stripOuterQuotes (str) {
@@ -599,15 +621,22 @@ class AutoFiller {
     }
   }
 
-  autoFill () {
+  autoFill (aryAudit = []) {
     // fill the song beats with calls based on combos in the system
-    // 1. check if it's the first call in the song: then, use a combo marked with startup flag
+    // 1. check if it's the first call in the song: then, use a combo marked with the startup flag
+    //     (starts with guapea or al centro)
     // 2. loop until song beats are full:
     //      a) start at currentBeatIndex, i.e. the starting spot for a combo
     //      b) pick a combo at random, but odds set by the "weight" of each combo
     //      c) divide the song into segments IF any cambio (irregular) beats are marked in the song beat "gear"
     //      d) call genOKPerms to check all the parms against the song and our rules for matching
-    //      e)
+    //        i) genOkPerms containes object "screener", which contains object "shifter"
+    //        ii) screener may "borrow a beat" from a move in the perm, if move has a "setup bar"
+    //        iii) calls shifter: returns false to reject a perm,
+    //                or OKs a single move (matches the song)
+    //                if the perm matches all shifts in the song, right to the end, return true
+    //      e) if genOkPerms receives "true" the perm as added to okParms collection, and is eligible to be chosen
+    //           according to move probabilities.  That's called "Weight" of a branch in the combo tree.
     //
     // TO USE:
     //   this.currentBeatIndex
@@ -636,26 +665,56 @@ class AutoFiller {
     let wtOpeningTotal = 0
     let wtMainTotal = 0
 
-    let aryAudit = [] // we'll track what choices are made
     let workingCombos = _cloneDeep(that.editedCombos)
 
-    const prepareClaveSwitches = function (start, lstSeq, lstBeats, lstMoves, currentBeatIndex) {
+    const getFillSpots = function (start, lstSeq, lstBeats, lstMoves) {
       // for now, this is called with arg start = arg currentBeatIndex.  But that may change...
       // If the song has clave switches, normal moves won't fit
       // Here, we find the switches (marked with the gear "cambio")
       //   and insert a move in the sequence (call is currently "Cruce") that is only 4 counts long
       // RETURNS: the number of such moves inserted
-      let aryFillSpots = []
-      for (let i = currentBeatIndex; i < lstBeats.length; i++) {
-        if (lstBeats[i].gear === 'cambio') {
+      let initOffset = start
+      let aryFillPos = []
+      let nRumbaPosition; // will hold the location of 1 rumba call, as found in this iteration
+      let bRumbaFlag // will tell us if the song starts with a rumba section (gear=rumba)
+      //   which will be excluded from the fill spots ranges by pusing up the currentBeatIndex
+      // In other words: a rumba section can be recognized, but only at the start of the song!
+
+      // typeof bRumbaFlag === 'undefined': we haven't elimated the possibility of a rumba start
+      // typeof bRumbaFlag === 'object': we ELIMINATED the possibility of a rumba start (we assigned null, which is object)
+      // typeof bRumbaFlag === true: there is a rumba section, and we are counting up a new value for 'start', the start of regular salsa beats
+
+      for (let i = 0; i < lstBeats.length; i++) {
+        // rumba sect (if any) must be at start of song: before any of ['accent', 'spicy', 'climax']
+        if (typeof bRumbaFlag === "undefined") {
+          if (lstBeats[i].gear === 'rumba') {
+            bRumbaFlag = true
+            nRumbaPosition = i
+          } else if (['accent', 'spicy', 'climax'].includes(lstBeats[i].gear)) {
+            bRumbaFlag = false
+          }
+        }
+        if (bRumbaFlag) { // not null, not undefined
+          // if we have a rumba section, now we signal the end of it by undefined value
+          start = i // keep counting the measure of rumba at the start
+          if (['accent', 'spicy', 'climax'].includes(lstBeats[i].gear)) bRumbaFlag = null
+          // cambio (if any) must come later in the song, after some bars of regular salsa dance time
+        } else if (lstBeats[i].gear === 'cambio') {
           // the gear creation should prevent two consecutive beats both with a shift
-          aryFillSpots.push(i)
+          aryFillPos.push(i)
         }
       }
-      return aryFillSpots || []
+      let ret = {}
+      ret.rumbaPosition = Math.max(nRumbaPosition - initOffset, 0) // index can't be less than zero!
+      ret.autoFillPositions = [start].concat(aryFillPos) || []
+      return ret
     }
 
     const refreshCombos = function () {
+      // two sets of combos:
+      //  opening combos
+      //  main combos
+      // to choose a move from.  As 1 is used, it is removed from the choices
       openingCombos = []; openingCombosWts = []; openingCombosWtsCum = []; wtOpeningTotal = 0
       mainCombos = []; mainCombosWts = []; mainCombosWtsCum = []; wtMainTotal = 0
       for (const [_, value] of Object.entries(workingCombos)) {
@@ -688,45 +747,48 @@ class AutoFiller {
         mainCombosWtsCum.push(cum)
       }
     }
-    refreshCombos() // first time, no combos are rejected
-    // THIS SECTION identifies short musical measures.
-    //  We consider them a limit when generating our move lists (perms)
-    //  They must be populated using special short moves called moveCruce (or maybe moveFoto if they are 3/4 size)
 
-    // First let's find these limiting indexes in our lstTimesAndGears
-    this.aryFillSpots = [this.currentBeatIndex].concat(prepareClaveSwitches(this.currentBeatIndex, this.lstSeqEdited, this.lstTimesAndGears, this.editedMoves, this.currentBeatIndex))
     const timeStart = new Date() // for runtime profiling
 
-    // OK we have our limits.  For each available segment of beats,
+    refreshCombos() // first time, no combos are rejected
+    // THIS SECTION identifies short musical measures, that need special moves. (Cruce usually)
+    //  We consider areas between these as the target for when applying our moves (perms)
+
+    //  let's find these limiting markers in our lstTimesAndGears.  We also check for a rumba beginning, fairly common in timba
+    const fillInfo = getFillSpots(this.currentBeatIndex, this.lstSeqEdited, this.lstTimesAndGears, this.editedMoves)
+    this.aryFillSpots = fillInfo.autoFillPositions
+    // Did getFillSpots find a rumba gear in the song, at the beginning?  i.e. before regular upshifts?
+    //  If so... this gets a single "Rumba" call
+    const nRumbaPosn = fillInfo.rumbaPosition // save this until the autofill moves are in!
+    // OK we have our autofill areas.  For each available segment of beats,
     //  generate perms (groups of moves) to fill them
     for (let spot = 0; spot < this.aryFillSpots.length; spot += 1){
       // first move of the segment
       for (let fill = this.currentBeatIndex; fill < this.aryFillSpots[spot]; fill++){
-        // retFillSeq.push(moveContinue) NO: convention is no value placed here
-        retFillSeq.push(undefined) // A Continue move is a placeholder: do nothing, say nothing... just take up time
+        retFillSeq.push(undefined) // A Continue move is a placeholder: do nothing, say nothing... just take up time.  Convention is to use undefined for Continue here
       }
       this.currentBeatIndex = this.aryFillSpots[spot] // this value is read by genOKPerms called below
 
       if (spot > 0) {
-        // the first spot (index 0) is our starting spot.  If there are any more after this,
-        //  then there must be a Cambio (short measure) gear, and we'll put a moveCruce at that spot
+        // the first spot (index 0) is our starting spot.  If there are any MORE after this,
+        //  then there must be a "cambio" (short measure) gear, and we'll put a moveCruce at that spot
         let mv = this.moveCruce
-        let aud = 'sw~ Cambio (half measure clave switch)'
-        let bts = that.lstTimesAndGears; let ix = this.currentBeatIndex // make next sec easier to read!
+        let bts = that.lstTimesAndGears; let ix = this.currentBeatIndex // for "beats", make next code easier to read!
+        let aud = 'ms~ Cambio (half measure clave switch) at beat: ' + ix
         // There's a slight chance of a short measure that is longer than 2 beats of 4: 3 beats of 4.
         // In that case we'll call Foto currently
         try { // take the short cambio interval, x 2.  Div by total of preceding and following interval.
           // if 5/8 or more, then the cambio is a bit longer.  Instead of a half measure, it's 6/8 of a measure.  e.g. Pachito Alonso, La Calle me Llama
           if (((bts[ix + 1].time - bts[ix].time) * 2) / ((bts[ix + 2].time - bts[ix + 1].time) + (bts[ix].time - bts[ix - 1].time)) > 0.625) {
             mv = this.moveFoto
-            let aud = 'sw~ Cambio (3/4 measure clave switch)'
+            let aud = 'ms~ Cambio (3/4 measure clave switch) at beat: ' + ix
           }
         } catch (error) {
-          console.log ('Anticipated ERROR Checking cambio measure to see if 3/4 of a measure: leaving as half a measure!')
+          // console.log ('Expected conditional ERROR Checking cambio measure to see if 3/4 of a measure: leaving as half a measure!')
         }
         retFillSeq.push(mv)
         aryAudit.push(aud)
-        this.currentBeatIndex += 1 // this is used by genOKPerms called below
+        this.currentBeatIndex += 1 // don't clobber my cambio!  this is used by genOKPerms called below
         workingCombos = _cloneDeep(that.editedCombos)  // start next segment with a full choice of combos, ready for next call to refreshCombos
       }
 
@@ -737,10 +799,11 @@ class AutoFiller {
         if (firstPerm) { ary = openingCombos; pmf = openingCombosWts; cdf = openingCombosWtsCum }
         else { ary = mainCombos; pmf = mainCombosWts; cdf = mainCombosWtsCum }
         if (ary.length === 0) {
-          aryAudit.push('xx~* XXXX NO FITS, and NO MORE COMBOS to try!')
+          aryAudit.push('xx~ XXXX NO FITS, and NO MORE COMBOS to try!')
           break
         }
         chooseCombo = () => {
+          // random combo chosen here
           var rand = Math.random()
           var ind = cdf.findIndex(el => rand <= el)
           try {
@@ -750,15 +813,18 @@ class AutoFiller {
           }
         }
         let cbo = chooseCombo()
-        aryAudit.push('cn~' + cbo.$.name + ' [at pos ' + this.currentBeatIndex + ']')
-        this.genOkPerms(cbo) // now all legal perms for the current beat are in this.okPerms
-        const pmSel = this.okPerms[this.selPermIndex]
+        // NOTE: these tags (3 chars at start of audit line) are critical for test analysis
+        aryAudit.push('cn~ ' + cbo.$.name + ' [at pos ' + this.currentBeatIndex + ']')
+        this.genOkPerms(aryAudit, cbo) // now all legal perms for the current beat are in this.okPerms
+        const pmSel = this.okPerms[this.selPermIndex] // random choice
         if (!pmSel) {
+          // REMOVE the combo that didn't fit, and we will choose again
           delete workingCombos[cbo.$.name]
-          aryAudit.push('cx~* XXX no fits in combo (all perms ' + this.numAllPerms + ')')
+          aryAudit.push('cx~ ' + cbo.$.name + ' [no perms fit (tested perms ' + this.numPerms + ')]')
         } else {
           firstPerm = false
-          aryAudit.push('pf~' + pmSel.hdr.id + ' pass-' + this.passCount + '- (okperms ' + this.okPerms.length + ', all perms '+ this.numAllPerms +')')
+          // NOTE: these tags (3 chars at start of audit line) are critical for test analysis
+          aryAudit.push('pu~ ' + pmSel.hdr.id + ' RAND SELECTED PERM - (okperms ' + this.okPerms.length + ', all perms '+ this.numPerms +')')
           retFillSeq.push(...pmSel.moves[0])
           pmSel.moves[0].forEach(element => {
             this.currentBeatIndex += element.length
@@ -772,8 +838,12 @@ class AutoFiller {
         }
       }
     }
+
+    // now we can add the Rumba call we found: if any!
+    if (typeof(nRumbaPosn) === 'number') retFillSeq[nRumbaPosn] = this.moveRumba
+
     const elapsed = new Date() - timeStart
-    aryAudit.push('TIME: ' + elapsed/1000 + ' sec.')
+    aryAudit.push('tm~ ' + elapsed/1000 + ' sec.')
     return [retFillSeq, aryAudit]
   }
 

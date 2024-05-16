@@ -19,19 +19,24 @@ const initialSettings = {
   userType: '1', // set calls for a song
   beatsShowUsage: true,
   RMEFolder: standardRMEfolder,
-  settingsVersion: 8,
-  beatToCallOn: 2,
+  settingsVersion: 9,
+  beatToCallOn: 1,
+  presetOrAutofill: 1, // 1-preset, 2-autofill
   authorId: process.env.username || process.env.user,
-  playables: { 'RM Sample.mp3': MUSICFOLDER },
+  playables: { '01 La Calle Me Llama.m4a': MUSICFOLDER },
   musicVol: 0.7
 }
 const state = {
   settings: _cloneDeep(initialSettings),
-  version: '5.0.2' // this is the RME App version, must agree with package.json (manual check)
+  version: '6.0.1' // this is the RME App version, must agree with package.json (manual check)
 }
 
 // update settings, get a setting
 const mutations = {
+  PRESET_OR_AUTOFILL (state, payload) {
+    state.settings.presetOrAutofill = payload
+    discDataHelper.persistUserDataAll(state.settings)
+  },
   BEAT_TO_CALL_ON (state, payload) {
     state.settings.beatToCallOn = payload
     discDataHelper.persistUserDataAll(state.settings)

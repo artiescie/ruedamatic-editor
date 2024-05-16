@@ -17,7 +17,7 @@
 // Yes, it is dirty. But it works: https://jsfiddle.net/h34a7s0n/89/
 
 import DiscDataHelper from '../shared/DiscDataHelper'
-import Path from 'path'
+import path from 'path'
 import electron from 'electron'
 import Vue from 'vue'
 import _cloneDeep from 'lodash/cloneDeep'
@@ -57,10 +57,14 @@ const state = {
   seqScheme: '',
   seqSchemeAuthor: '',
   seqSchemeDate: 0,
-  bReloadCurrentSeq: false // for auto renaming of moves in seq files, when a move name is changed on Moves tab
+  bReloadCurrentSeq: false, // for auto renaming of moves in seq files, when a move name is changed on Moves tab
+  spotifySongId: ''
 }
 
 const mutations = {
+  PRESET_OR_AUTOFILL (state, payload) {
+
+  },
   NUDGE_ALL_CALLS (state, payload) {
     // payload: index, count.  If no index
     //  then consider start as 0
@@ -133,7 +137,7 @@ const mutations = {
         state.seqSchemeAuthor = ''
         state.seqSchemeDate = 0
       } else {
-        // how you set individual file properties: if payload has the key, we use the value
+        // how you set individual file properties: if payload has the key, we use the value.  Otherwise keep curr value!
         if (payload.hasOwnProperty('MP3FileName')) state.MP3FileName = payload.MP3FileName
         if (payload.hasOwnProperty('MP3FileNameMd5GivenXML')) state.MP3FileNameMd5GivenXML = payload.MP3FileNameMd5GivenXML
         if (payload.hasOwnProperty('MP3FileNameMd5GivenSEQ')) state.MP3FileNameMd5GivenSEQ = payload.MP3FileNameMd5GivenSEQ
@@ -299,11 +303,11 @@ const mutations = {
 
 const getters = {
   getXMLFileName: state => (folder) => {
-    const beatsFolder = Path.join(RMDIR, 'compases_para_canciones')
+    const beatsFolder = path.join(RMDIR, 'compases_para_canciones')
     if (state.MP3FileName) {
-      return Path.join(
+      return path.join(
         beatsFolder,
-        Path.basename(state.MP3FileName, Path.extname(state.MP3FileName)) +
+        path.basename(state.MP3FileName, path.extname(state.MP3FileName)) +
         '.xml'
       )
     } else {
@@ -313,11 +317,11 @@ const getters = {
   },
   // used by PERSIST_SEQ
   getSEQFileName: state => (folder) => {
-    const BEATSFOLDER = Path.join(RMDIR, folder, 'secuencias_para_canciones')
+    const BEATSFOLDER = path.join(RMDIR, folder, 'secuencias_para_canciones')
     if (state.MP3FileName) {
-      return Path.join(
+      return path.join(
         BEATSFOLDER,
-        Path.basename(state.MP3FileName, Path.extname(state.MP3FileName)) +
+        path.basename(state.MP3FileName, path.extname(state.MP3FileName)) +
         '.seq'
       )
     } else {

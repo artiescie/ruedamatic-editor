@@ -67,6 +67,7 @@
          <songs-measures ref="songsMeasures" :card-height=cardHeight :wave-surfer=WAVESURFER :wave-is-loaded=waveIsLoaded
            :state-recording-beats=stateRecordingBeats :awaiting-beats-save=awaitingBeatsSave :scroll-me=scrollMe
            :tell-music-changed=tellMusicChanged :bAlreadyWarnedFlag=bAlreadyWarnedFlag :showMusicLoader=showMusicLoader
+           :autofill-audit-songs=autofillAuditSongs
            @add-seq-move="addSeqMove" @playSong="playSong" @changeMode="changeMode"
            @meanCalculated="meanCalculatedByMeasures" @already-warned-flag="bAlreadyWarnedFlag = true">
          </songs-measures>
@@ -122,15 +123,14 @@ import WaveSurfer from 'wavesurfer.js'
 import fs from 'fs'
 import electron from 'electron'
 import DiscDataHelper from '../store/shared/DiscDataHelper.js'
-// import _sum from 'lodash/sum'
-// import _mean from 'lodash/mean'
-// import _range from 'lodash/range'
+
 import _cloneDeep from 'lodash/cloneDeep'
 // eslint-disable-next-line no-unused-vars
 import { Howl, Howler } from 'howler'
 import scrollIntoView from 'smooth-scroll-into-view-if-needed'
 import { exec } from 'child_process'
 import path from 'path'
+import AutoFiller from './Songs/AutoFiller'
 
 const HOMEDIR = electron.remote.app.getPath('home')
 const DOCDIR = electron.remote.app.getPath('documents')
@@ -145,13 +145,14 @@ let WAVESURFER
 export default {
   data () {
     return {
+      autofillAuditSongs: ['Dummy audit entry'], // passed prop to Measures, and it can be dumped from there with Alt-X
       bShowFancy: false,
       showMusicLoader: true,
       bAlreadyWarnedFlag: false,
       callsOff: false,
       tellMusicChanged: '',
       scrollMe: false, // should the times boxes autoscroll while playing?
-      showingBuyDialog: false, // so Measures subcomponent doesn't preventDefault
+      // showingBuyDialog: false, // so Measures subcomponent doesn't preventDefault
       mode: null, // based on event from subcomp
       measuresComponentKey: 0,
       windowHeight: 0,
@@ -346,17 +347,16 @@ export default {
   },
   methods: {
     startSongHandler (songPtr) {
-      // this.$router.push({ name: 'songs' })
-      const fn = path.join(songPtr.path, songPtr.file)
-      if (!this.discDataHelper.fileExists(fn)) {
-        this.$bvToast.toast('File has apparently moved? ' + fn, { title: 'Error' })
+      const fname = path.join(songPtr.path, songPtr.file)
+      if (!this.discDataHelper.fileExists(fname)) {
+        this.$bvToast.toast('File has apparently moved? ' + fname, { title: 'Error' })
         return
       }
       this.showMusicLoader = false
       this.$nextTick(() => {
         this.waveIsLoaded = false
-        this.loadMusicFile(fn)
-        this.tellMusicChanged = fn // notify Measures subcomponent
+        this.loadMusicFile(fname)
+        this.tellMusicChanged = fname // notify Measures subcomponent
       })
     },
     setPlayable () {
@@ -745,18 +745,20 @@ Dialogue: Marked=0,0:00:00.00,0:00:02.50,Default,NTP,0000,0000,0000,!Effect,{\\b
       }
 
       // get the Calls (Sequence) file
-      if (this.lstTimesWork.length > 0) {
-        const seqFilePath = path.join(RMDIR, this.RMEFolder, 'secuencias_para_canciones', path.basename(this.currentFile,
-          path.extname(this.currentFile)) + '.seq')
-        if (this.discDataHelper.fileExists(seqFilePath)) {
-          this.loadExistingSequence()
+      if (this.$store.state.settingsStore.settings.presetOrAutofill === 1) {
+        if (this.lstTimesWork.length > 0) {
+          const seqFilePath = path.join(RMDIR, this.RMEFolder, 'secuencias_para_canciones', path.basename(this.currentFile,
+            path.extname(this.currentFile)) + '.seq')
+          if (this.discDataHelper.fileExists(seqFilePath)) {
+            this.loadExistingSequence()
+          } else {
+            this.$store.commit('LOAD_SEQ', []) // ensure we don't keep a previous file sequence if none for current song
+            console.log('No Calls data file (seq) found for this song')
+          }
         } else {
           this.$store.commit('LOAD_SEQ', []) // ensure we don't keep a previous file sequence if none for current song
-          console.log('No Calls data file (seq) found for this song')
+          console.log('No Beats, so don\'t even look for a sequence file!')
         }
-      } else {
-        this.$store.commit('LOAD_SEQ', []) // ensure we don't keep a previous file sequence if none for current song
-        console.log('No Beats, so don\'t even look for a sequence file!')
       }
       this.bLoading = true // trigger loading animation
       this.prepareSong()
@@ -948,6 +950,30 @@ Dialogue: Marked=0,0:00:00.00,0:00:02.50,Default,NTP,0000,0000,0000,!Effect,{\\b
               ' (' +
               timeTotalLoc.toFixed(1) +
               ' sec)'
+            if (that.$store.state.settingsStore.settings.presetOrAutofill === 2) { // autofill please!
+              const currentBeatIndex = 2 // give the dancers a few seconds, like IRL
+              const editedMoves = that.$store.state.movesStore.editedMoves
+              const editedCombos = that.$store.state.movesStore.editedCombos
+              that.autoFiller = new AutoFiller([], editedMoves, editedCombos, that.lstTimesWork, currentBeatIndex)
+              this.$store.commit('LOAD_SEQ', []) // ensure we don't keep a previous file sequence if none for current song
+              // eslint-disable-next-line no-unused-vars
+              const [allMoves, audit] = that.autoFiller.autoFill()
+              this.autofillAuditSongs = audit
+              let offs = 0
+              for (let i = 0; i < allMoves.length; i++) {
+                if (allMoves[i]) {
+                  const ind = that.autoFiller.editedMoves.binarySearchIndex(allMoves[i].move, m => m.$.nameSorted) // get the details need to save sequence
+                  const fullMove = that.autoFiller.editedMoves[ind]
+                  that.addSeqMove(allMoves[i].move) // Songs needs to add Howler for this to move dictionary)
+                  that.$store.commit('ADD_THIS_SEQ_MOVE', { index: currentBeatIndex + offs, item: _cloneDeep(fullMove), maxBeat: that.lstTimesWork.length })
+                  offs += allMoves[i].length ? allMoves[i].length : 1 // cambio move takes a position on the grid, even if it's nominal length is 0 (signifying half a measure)
+                } else {
+                  offs += 1 // Continue is the empty move, exists just to take up a measure of time
+                }
+              }
+
+              that.playSong() // don't know another way to reset to beginning
+            }
           })
 
           WAVESURFER.on('finish', () => {

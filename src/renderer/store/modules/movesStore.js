@@ -8,6 +8,8 @@ import fs from 'fs'
 import path from 'path'
 import wget from 'wget-improved'
 import Vue from 'vue'
+import replace from 'replace-in-file'
+
 // import _cloneDeep from 'lodash/cloneDeep'
 // import opn from 'opn'
 // import yaml from 'js-yaml'
@@ -35,9 +37,18 @@ const state = {
   schemeName: '',
   schemeProvider: '',
   schemeDate: '',
-  showBusy: false
+  showBusy: false,
+  // getMovesWithUsage resi;ts
+  movesWithUsage: null,
+  msgUnmatchedSeqs: '',
+  msgUnmatchedCombos: ''
 }
 const mutations = {
+  UPDATE_MOVES_USAGE (state, payload) {
+    state.movesWithUsage = payload.movesWithUsage
+    state.msgUnmatchedSeqs = payload.msgUnmatchedSeqs
+    state.msgUnmatchedCombos = payload.msgUnmatchedCombos
+  },
   UPDATE_COMBO_HEADER (state, payload) {
     // payload:
     //   comboName:
@@ -345,6 +356,69 @@ const getters = {
       }
     })
   },
+  getMovesInCombos: (state, getters) => (dictMv, dictUnmatchedCombos) => {
+    let cname = ''
+
+    Object.entries(state.editedCombos).forEach(c => {
+      cname = c[0] // name of combo
+      Object.entries(c[1].nodes).forEach(n => {
+        // capt1: entire field,
+        //   capt2: combine capt1 and capt2(which is considered full move name),
+        //   capt3: bare move name without bracket,
+        //   capt4: optional bracket comment in name, capt5: possible extension range for move.  #3 is our move name to match!
+        // const mvC = n[1].text.match(/"((.*[\wáéíóú'])( +\(.*\))?)( \[\d-\d\])?"/u)[1]
+        let mvC
+        try {
+          // note this regex should be consistent with validation in Moves::valnName method
+          mvC = n[1].text.match(/^"(([\wáéíóúñÁÉÍÓÚÑ.'\-, ]*[\wáéíóúÁÉÍÓÚ.']+)( \([\wáéíóúñÁÉÍÓÚÑ'\-/, ]*\))?)( \[\d-\d\])?"$/u)[1]
+        } catch (e) {
+          throw new Error((n[1].text || n[1].toString()) + ' in combo is illegal name, combo:' + cname)
+        }
+        if (!(mvC in dictMv)) {
+          if (!(mvC in dictUnmatchedCombos)) dictUnmatchedCombos[mvC] = {}
+          if (!(cname in dictUnmatchedCombos[mvC])) dictUnmatchedCombos[mvC][cname] = 1
+          else dictUnmatchedCombos[mvC][cname] += 1
+        } else {
+          if (!('seqs' in dictMv[mvC])) dictMv[mvC].combos = {}
+          if (!(cname in dictMv[mvC].combos)) {
+            // dictMv[mvC].seqs = {}
+            dictMv[mvC].combos[cname] = 1
+          } else {
+            dictMv[mvC].combos[cname] += 1
+          }
+        }
+      })
+    })
+  },
+  getMovesInSeqs: (state, getters) => (dictMv, dictUnmatchedSeqs) => {
+    // helper for getMovesWithUsage
+    function getSEQSPEC () {
+      return path.join(RMDIR, state.schemeName, 'secuencias_para_canciones', '*.seq')
+    }
+
+    const reMove = /move name="(.*)"/g
+    const seqFilesReplaceOptionsXML = {
+      files: getSEQSPEC(),
+      from: reMove,
+      to: (...args) => {
+        const sSeqFile = args[4].substr(args[4].lastIndexOf('/') + 1).replace('.seq', '')
+        if (!(args[1] in dictMv)) {
+          if (!(args[1] in dictUnmatchedSeqs)) dictUnmatchedSeqs[args[1]] = {}
+          if (!(sSeqFile in dictUnmatchedSeqs[args[1]])) dictUnmatchedSeqs[args[1]][sSeqFile] = 1
+          else dictUnmatchedSeqs[args[1]][sSeqFile] += 1
+        } else {
+          if (!('seqs' in dictMv[args[1]])) dictMv[args[1]].seqs = {}
+          if (!(sSeqFile in dictMv[args[1]].seqs)) {
+            dictMv[args[1]].seqs[sSeqFile] = 1
+          } else {
+            dictMv[args[1]].seqs[sSeqFile] += 1
+          }
+        }
+      },
+      dry: true
+    }
+    replace.sync(seqFilesReplaceOptionsXML) // READONLY just a dry run!
+  },
   getCallsNotUsedDisplay: (state, getters) => {
     const selEntries = getters.getCallsUsage.filter(m => m.moves.length === 0)
     return selEntries.map(ent => ent.file).join(', ') || 'none'
@@ -352,10 +426,57 @@ const getters = {
 }
 
 const actions = {
+  diagMovesWithUsage: ({ commit, dispatch, state, getters }) => {
+    const dictDups = {} // should remain empty
+    const dictUnmatchedCombos = {}
+    const dictUnmatchedSeqs = {}
+    const dictMv = {}
+    const workMoves = _cloneDeep(state.editedMoves)
+    workMoves.forEach(m => {
+      const obj = {
+        // define fields that will be displayed in System Information
+        name: m.$.name,
+        countSeq: 0, // placeholder
+        countCombos: 0, // placeholder
+        comment: m.comment ? m.comment[0] : '',
+        details: '... awaiting fields'
+      }
+      if (m.$.name in dictMv) dictDups[m.$.name] = obj
+      else dictMv[m.$.name] = obj
+      if (!('combos' in dictMv[m.$.name])) dictMv[m.$.name].combos = {}
+      if (!('seqs' in dictMv[m.$.name])) dictMv[m.$.name].seqs = {}
+      dictMv[m.$.name].comment = m.comment
+    })
+    getters.getMovesInSeqs(dictMv, dictUnmatchedSeqs)
+    getters.getMovesInCombos(dictMv, dictUnmatchedCombos)
+    // Remove the mermaid graph start node 'Start' from the Combos list
+
+    if ('Start' in dictUnmatchedCombos) delete dictUnmatchedCombos.Start
+    const sMsgSeqs = JSON.stringify(dictUnmatchedSeqs, null, 4).replace(/\n\s*\},/g, '').replace(/[{}]/g, '')
+      .replace(/\n\s*$/, '').replace(/(\n)/g, '$1<br>').replace(/ /g, '&nbsp;').replace('{}', '')
+    const sMsgCombos = JSON.stringify(dictUnmatchedCombos, null, 4).replace(/\n\s*\},/g, '')
+      .replace(/[{}]/g, '').replace(/\n\s*$/, '').replace(/(\n)/g, '$1<br>').replace(/ /g, '&nbsp;').replace('{}', '')
+
+    if ('Continue' in dictMv) delete dictMv.Continue // this is used by system for spacing moves
+    for (const m in dictMv) {
+    // dictMv.forEach(m => {
+      dictMv[m].countSeq = Object.getOwnPropertyNames(dictMv[m].seqs).length
+      dictMv[m].countCombos = Object.getOwnPropertyNames(dictMv[m].combos).length
+      dictMv[m].details = '<strong><em>Comment: ' + '</em></strong>' + dictMv[m].comment + '<br>'
+      dictMv[m].details += '<strong><em>In Seqs:</em></strong><br>' + Object.entries(dictMv[m].seqs).map(e => '&nbsp;' + e[0] + ' (' + e[1] + ')').join('<br>') + '<p>'
+      dictMv[m].details += '<strong><em>In Combos:</em></strong><br>' + Object.entries(dictMv[m].combos).map(e => '&nbsp;' + e[0] + ' (' + e[1] + ')').join('<br>') + '<p>'
+    }
+    commit('UPDATE_MOVES_USAGE', {
+      movesWithUsage: Object.entries(dictMv).map(m => m[1]),
+      msgUnmatchedSeqs: sMsgSeqs,
+      msgUnmatchedCombos: sMsgCombos
+    })
+    // return [Object.entries(dictMv).map(m => m[1]), sMsgSeqs, sMsgCombos]
+  },
   getDataList (context, which) {
     // these lists are PREPARED and DEPLOYED by "aws_pkg_deploy" utility
     // Aug 2023: only "available" is used right now
-    // Out of the available packages, RM_Sample is installed via "OK" to user prompt, by default
+    // Out of the available packages, only sample music is installed via "OK" to user prompt, by default
     context.commit('SET_BUSY_NOTICE')
     // which = available or basic
     if (!['basic', 'available'].includes(which)) {
