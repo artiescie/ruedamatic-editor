@@ -100,7 +100,7 @@ click here to update counts and validations shown above">
       <div class="items">
         <div class="item" title="Version you are using of this program">
           <div class="name">Ver </div>
-          <div class="value">{{ ruedamaticversion }} </div>&nbsp;<div class="name">Built Wed May 15, 2024 - (07:49 PM)</div>
+          <div class="value">{{ ruedamaticversion }} </div>&nbsp;<div class="name">Built Wed May 15, 2024 - (08:53 PM)</div>
         </div>
       </div>
       <div v-if="this.getUserType === '2'" class="title" :title="getSpotifyTooltip"><strong>RM-spot</strong><em> (hover for more)</em></div>
