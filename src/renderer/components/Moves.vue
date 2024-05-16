@@ -50,7 +50,7 @@ i18n trial case for translations, works ok but not followed up!  Not a priority.
 
       <!-- MOVES table -->
       <b-table v-if="modePerRadios==='moveMode'" :items="visibleMoves" :fields="fields" :sort-compare="titleComparator"
-        :filter-function="customFilterMoves" :current-page="currentPageMoves" :per-page="perPage" :filter="filter"
+        :filter-function="customFilterMoves" :current-page="currentPageMoves" :per-page="perPage" :filter="filter" primary-key="$.name"
         striped hover small @filtered="onFiltered" @row-clicked="rowClicked">
         <template v-slot:cell($.name)="row">
           <b-button size="sm" :title="row.item.$.name" :variant="row.item.$.demolink && row.item.$.demolink.substring(0,4)==='http' ? 'success': 'secondary'"
@@ -72,8 +72,8 @@ i18n trial case for translations, works ok but not followed up!  Not a priority.
 
       <!-- COMBOS table, or container for mermaid display and edit -->
       <div v-if="modePerRadios==='comboMode'">
-        <b-table v-if="!comboFlowShown" :items="comboList" :fields="comboFields" :filter-function="customFilterCombos"
-          :filter-included-fields="['name']" :current-page="currentPageCombos" :per-page="perPage" :filter="filter"
+        <b-table v-if="!comboFlowShown" :items="comboList" ref="combosTable" :fields="comboFields" :filter-function="customFilterCombos"
+          :filter-included-fields="['name']" :current-page="currentPageCombos" :per-page="perPage" :filter="filter"  primary-key="name"
           striped hover small @filtered="onFiltered" @row-clicked="rowClicked">
           <template v-slot:cell(actions)="row">
             <b-btn variant="warning" size="sm" @click="showFlow(row.item)">Details
@@ -529,8 +529,6 @@ export default {
       valNameMaxLen: 45,
       valNameMinLen: 3,
       valComboDescMinLen: 10,
-      totalRowsMoves: 1,
-      totalRowsCombos: 1,
       modalEditComboHeaderShown: false,
       showLengthWarning: false,
 
@@ -559,15 +557,6 @@ export default {
 
       moveFilter: '',
       moveFilterTemp: '',
-      comboFields: [{ key: 'name', label: 'Name' },
-        { key: 'description', label: 'Description' },
-        // startup can be set by Vue reading the checkbox, i.e. boolean, although the XML tools save it as a string 'true', 'false'
-        { key: 'startup', label: 'Startup', formatter: val => val === 'true' || val === true ? '▶️' : '', headerTitle: 'Use for start and restart of dancing' },
-        { key: 'weight', label: 'Weight', headerTitle: 'Weight (rel odds to select)' },
-        { key: 'minLength', label: 'Min Length', headerTitle: 'Shortest result possible (beats)' },
-        { key: 'maxLength', label: 'Max Length', headerTitle: 'Longest result possible (beats)' },
-        { key: 'hasUpshift', label: 'Has Upshift', formatter: val => val === 'true' ? '🔥' : '', headerTitle: 'Contains spicy/climax marked move (upshift)' },
-        { key: 'actions', label: 'Actions', headerTitle: 'Bring up the combo graph for review or edit' }],
       graphFields: [{ key: 'name', label: 'Name', sortable: true },
         { key: 'length', label: 'Length', sortable: true },
         { key: 'level', label: 'Lvl', sortable: true },
@@ -613,6 +602,12 @@ export default {
     }
   },
   computed: {
+    totalRowsMoves () {
+      return this.visibleMoves ? this.visibleMoves.length : 0
+    },
+    totalRowsCombos () {
+      return this.comboList ? this.comboList.length : 0
+    },
     graphReady () {
       // if (document.getElementById('mermaid-graph')) {
       if (document.getElementById('mermaid')) {
@@ -702,7 +697,7 @@ export default {
           narr.push(Object.assign({ id: k }, n))
         })
       } catch (e) {
-        console.log('No combos for this scheme!')
+        console.log('No content for this combo!')
       }
       return narr
     },
@@ -791,13 +786,13 @@ export default {
             headerTitle: 'If move name shows in green, \nyou can click to watch a demonstration.\n\n' +
               'If you sort by clicking header, you can see a smart sort,\n where leading articles are ignored.\nFor example: "El Flaco" is then sorted under the letter F.',
             sortable: true,
-            formatter: comment => {
+            formatter: name => {
               const ELLIPSIS_CHARACTER = '\u2026'
               const max = 35
-              if (comment && comment.length > max) {
-                return comment.slice(0, max - 1) + ELLIPSIS_CHARACTER
+              if (name && name.length > max) {
+                return name.slice(0, max - 1) + ELLIPSIS_CHARACTER
               } else {
-                return comment
+                return name
               }
             }
           },
@@ -806,7 +801,7 @@ export default {
             label: this.$i18n.t('col_comment'),
             headerTitle: 'Add your comments',
             sortable: false,
-            tdAttr: 'tdCommentTitle',
+            tdAttr: 'tdMakeTitle',
             formatter: comment => {
               const ELLIPSIS_CHARACTER = '\u2026'
               const max = 50
@@ -832,6 +827,47 @@ export default {
           { key: '$.equivalency', label: 'Eq', headerTitle: 'Interchangable moves are linked by the same Equivalence value (used by combos, automated calling)', sortable: true },
           { key: '$.setupbars', label: 'Setup', headerTitle: 'For automated calls: bars used to setup main move', sortable: true },
           { key: 'actions', label: this.$i18n.t('col_actions'), sortable: false, headerTitle: 'Change your data' }
+        ]
+      }
+    },
+    comboFields: {
+      get () {
+        return [
+          {
+            key: 'name',
+            label: 'Name',
+            formatter: name => {
+              const ELLIPSIS_CHARACTER = '\u2026'
+              const max = 35
+              if (name && name.length > max) {
+                return name.slice(0, max - 1) + ELLIPSIS_CHARACTER
+              } else {
+                return name
+              }
+            },
+            tdAttr: 'tdMakeTitle'
+          },
+          {
+            key: 'description',
+            label: 'Description',
+            formatter: desc => {
+              const ELLIPSIS_CHARACTER = '\u2026'
+              const max = 42
+              if (desc && desc.length > max) {
+                return desc.slice(0, max - 1) + ELLIPSIS_CHARACTER
+              } else {
+                return desc
+              }
+            },
+            tdAttr: 'tdMakeTitle'
+          },
+          // startup can be set by Vue reading the checkbox, i.e. boolean, although the XML tools save it as a string 'true', 'false'
+          { key: 'startup', label: 'Startup', formatter: val => val === 'true' || val === true ? '▶️' : '', headerTitle: 'Use for start and restart of dancing' },
+          { key: 'weight', label: 'Weight', headerTitle: 'Weight (rel odds to select)' },
+          { key: 'minLength', label: 'Min Length', headerTitle: 'Shortest result possible (beats)' },
+          { key: 'maxLength', label: 'Max Length', headerTitle: 'Longest result possible (beats)' },
+          { key: 'hasUpshift', label: 'Has Upshift', formatter: val => val === 'true' ? '🔥' : '', headerTitle: 'Contains spicy/climax marked move (upshift)' },
+          { key: 'actions', label: 'Actions', headerTitle: 'Bring up the combo graph for review or edit' }
         ]
       }
     }
@@ -865,14 +901,13 @@ export default {
   },
   activated: function () {
     // hate to get that dragging image when all you want is to click
-    this.totalRowsMoves = this.visibleMoves ? this.visibleMoves.length : 0
-    this.totalRowsCombos = this.comboList ? this.comboList.length : 0
     var links = document.getElementsByClassName('page-link')
     for (var i = links.length - 1; i >= 0; i--) {
       links[i].draggable = false
     }
     // see https://laracasts.com/discuss/channels/vue/how-to-add-atkeyup-globally-with-vue?page=1 -->
     document.addEventListener('keydown', this.keyDownHandler)
+    // focus
     try {
       this.$refs.filtMovesCombos.focus()
     } catch (error) {
@@ -994,7 +1029,7 @@ export default {
     open (link) {
       this.$electron.shell.openExternal(link)
     },
-    tdCommentTitle (value, key, item) {
+    tdMakeTitle (value, key, item) {
       // wrap the comment "title" attribute, regex
       // https://stackoverflow.com/questions/14484787/wrap-text-in-javascript
       const wrap = (s, w) => s.replace(
@@ -1799,7 +1834,14 @@ export default {
       // from confirm dlg: go ahead and change the seq files
       // happens if a move name is changed, but the move is already used in a sequence
       //  the sequence must be edited to change that move name
-      replace.sync(this.seqFilesReplaceOptionsXML)
+      // replace.sync(this.seqFilesReplaceOptionsXML)
+      try {
+        replace.sync(this.seqFilesReplaceOptionsXML)
+      } catch (error) {
+        this.$bvModal.msgBoxOk('SEQ File(s) set READ-ONLY, protected from changes here!  You must change the file permissions to do this.')
+        this.$bvModal.hide('filesWarning')
+        return
+      }
       // seqFilesReplaceOptionsXML was already populated for testing if seq files are affected.
       // as well as the RME XML files with .seq extension, also affected are
       //  the RM-spot json files with .jseq extension.  Here we populate that object:

@@ -82,10 +82,6 @@ A Cambio gear is used to help automate meter changes - for example, a clave chan
             </span>
         </b-col>
         <b-col v-show="mode === 'timeMode'" md="4" style="margin:0;">
-          <!-- remove fix button, we have better way to fix now -->
-          <!-- <b-button class="m-2" @click="autoFix" title="If a beat was missed etc, this might fix it." :disabled="!waveIsLoaded">
-              Try Autofix
-          </b-button> -->
           <b-button class="m-2" @click="startNewBeatsCountdown" title="Play song and record all new beats" ref="btnRecordNew" :disabled="!waveIsLoaded" variant="danger">
               Record new beats
           </b-button>
@@ -194,7 +190,7 @@ so you can filter, select in the loader.">
       <b-row class="mb-1">
         <b-col cols="6">Delete all from here</b-col>
         <!-- method zapTheCalls(index, shift, allRemaining(default: false)) -->
-        <b-col><b-button style="margin:0px;padding:6px 12px;border:1;" @click="zapTheCalls(currentBeatIndex, undefined, true)" title="Delete this move, and all the moves after" variant="danger">Delete From Here</b-button></b-col>
+        <b-col><b-button style="margin:0px;padding:6px 12px;border:1;" @click="zapTheCalls(currentBeatIndex, undefined, true)" title="Delete this move, and all the moves after" variant="danger">Delete Starting Here</b-button></b-col>
       </b-row>
       <b-row class="mb-1">
         <b-col cols="6">Shift all to right</b-col>
@@ -285,8 +281,6 @@ WHAT THE SHIFT WILL DO:
         <p v-else-if="movesCombosOrAuto === 'autoMode' && Object.entries(editedCombos).length > 0" >
           Push OK to autofill the moves for the song.  <p>Use autofill on songs that have NO SAVED SEQUENCE that you want to keep!
             Autofill will try to match the gears (Accent/Spicy/Climax) ... so dancing works with the song's musicality.</p>
-          <!-- <p v-if="SEQFileExists"> -->
-            <!-- <p>Autofill is intended for songs you always want to use Autofill on.  I.e. not for songs that have a preset sequence you want to keep.   </p> -->
             <p>If you want to save an autofill sequence, just change or add any move and the result is saved.</p>
         </p>
         <!-- combo-table__row_Comb -->
@@ -871,6 +865,11 @@ export default {
     }
   },
   methods: {
+    SEQFileCanWrite () {
+      const mypath = this.$store.state.beatsAndSequenceStore.MP3FileName
+      const seqFile = path.basename(mypath, path.extname(mypath)) + '.seq'
+      return discDataHelper.fileCanWrite(path.join(RMDIR, this.RMEFolder, 'secuencias_para_canciones', seqFile))
+    },
     customFilter (row, criteria) {
       if (!!criteria && !row.name.match(toRegex()(criteria))) return false
       return true
@@ -1185,6 +1184,10 @@ export default {
       }
     },
     subSaveSeq () {
+      if (!this.SEQFileCanWrite()) {
+        this.$bvModal.msgBoxOk('SEQ File has been set READ-ONLY, protected from changes here!  You must change the file permissions to do this.')
+        return
+      }
       // FIXME: put in a username so we know if somebody can't find the beat -)
       const authorId = this.$store.state.settingsStore.settings.authorId
       const schemeDate = this.$store.state.movesStore.schemeDate
@@ -1455,7 +1458,14 @@ export default {
       this.$bvModal.hide('modalBeatAction')
     },
     details (index) {
-      // currentItemCanInsertMove
+      if (this.$store.state.settingsStore.settings.presetOrAutofill === 2) {
+        this.$bvModal.msgBoxOk('Dashboard set to AutoFill/AutoPlay: cannot change these temporary moves.')
+        return
+      }
+      if (!this.SEQFileCanWrite()) {
+        this.$bvModal.msgBoxOk('SEQ File has been set READ-ONLY, protected from changes here!  You must change the file permissions to do this.')
+        return
+      }
       if (this.$store.state.settingsStore.settings.presetOrAutofill === 2) {
         this.$bvToast.toast('Autofill mode, no actions allowed', {
           title: 'AUTOFILL',

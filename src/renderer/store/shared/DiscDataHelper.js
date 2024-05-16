@@ -147,6 +147,15 @@ class discDataHelper {
     return !!fs.existsSync(rFile)
   }
 
+  fileCanWrite (rFile) {
+    try {
+      const ret = !!fs.accessSync(rFile, fs.constants.W_OK)
+      return (ret || true) // if OK, method returns 'undefined': else throws error
+    } catch (error) {
+      return false
+    }
+  }
+
   // /////////////////////////////
   // store functions in this part: only call from store
   getUserDataAll () {

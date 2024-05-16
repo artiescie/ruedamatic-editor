@@ -25,7 +25,7 @@ For example: you might have a 'scheme' of moves for basic rueda, one for advance
         <div class="item" title="Preset: If there is already a prepared sequence of moves for each song, we can load it.
 Autofill: The Load screen in Songs will automatically create moves and play them.
 Hit 'Alt-X' to dump the autofill computation steps.">
-          <div class="name">Songs tab assume Preset or Autofill:</div>
+          <div class="name">Songs tab Autofill/Autoplay:</div>
           <div class="value">
             <b-form-select size="sm"
               :options="[{text:'Preset',value:1},{text:'Autofill',value:2}]"
@@ -100,7 +100,7 @@ click here to update counts and validations shown above">
       <div class="items">
         <div class="item" title="Version you are using of this program">
           <div class="name">Ver </div>
-          <div class="value">{{ ruedamaticversion }} </div>&nbsp;<div class="name">Built Sat Mar 30, 2024 - (05:34 PM)</div>
+          <div class="value">{{ ruedamaticversion }} </div>&nbsp;<div class="name">Built Wed May 15, 2024 - (07:49 PM)</div>
         </div>
       </div>
       <div v-if="this.getUserType === '2'" class="title" :title="getSpotifyTooltip"><strong>RM-spot</strong><em> (hover for more)</em></div>
@@ -353,12 +353,10 @@ export default {
       get: function () { return this.$store.state.settingsStore.settings.presetOrAutofill },
       set: function (value) {
         this.$store.commit('PRESET_OR_AUTOFILL', value)
-        // if (value === 1) {
         this.currentFile = null
         this.$store.commit('SET_MP3NAME_AND_DEPS', { MP3FileName: '' }) // this just clears the store for filename and all depenedent values
         this.$store.commit('INIT_BEATS', []) // this just clears the store
         this.$store.commit('LOAD_SEQ', []) // ensure we don't keep a previous file sequence if none for current song
-        // }
       }
     },
     beatToCallOn: {
@@ -551,6 +549,7 @@ export default {
       const dictShortBeatsWarning = {}
       const dictPastablePlaylists = {}
 
+      const that = this // Vue can lose the this pointer
       this.bCreatingRmData = true // show busy
 
       // 1. get the tags from the SEQUENCE files, store in dict by song NAME
@@ -580,6 +579,7 @@ export default {
           const bpm = args[1] || 0
           const currentSong = args[2] || ''
           const spotId = args[3]
+          if (dictSongIds[spotId]) that.$bvModal.msgBoxOk('WARNING: Duplicate Spotify songID: ' + spotId, { title: 'Duplicate Spotify ID error' })
           dictSongIds[spotId] = { file: currentSong, bpm: bpm, schemeTags: {} } // fill the tags next!
           // eslint-disable-next-line no-unused-vars
           const currentSongBeats = (args[4].match(/beat/g) || []).length

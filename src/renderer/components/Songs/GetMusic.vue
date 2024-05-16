@@ -149,10 +149,12 @@ export default {
   props: ['showMusicLoader'],
   beforeMount () {
     this.refresh()
+    console.log('BEFORE MOUNT GetMusic')
   },
   activated () {
-    this.refresh()
+    // this.refresh()
     this.$refs.inputFiltName.focus()
+    console.log('ACTIVATED GetMusic')
   },
   watch: {
     showMusicLoader (newVal) {
@@ -354,6 +356,7 @@ BEATS: Only songs with beats are listed.  To set beats, click "To Workbench" on 
     },
     refresh () {
       // the main population of the beatsFiles array behind the song grid
+      const dictSpotifySongId = {} // detect duplicate spotify song id
       this.filter = null
       const that = this
       const playable = that.$store.getters.getUserData('playables')
@@ -424,7 +427,10 @@ BEATS: Only songs with beats are listed.  To set beats, click "To Workbench" on 
           to: (...args) => lookin2(args),
           dry: true
         })
-
+        if (spotifySongId) {
+          if (dictSpotifySongId[spotifySongId]) that.$bvModal.msgBoxOk('WARNING: Duplicate Spotify songID: ' + spotifySongId, { title: 'Duplicate Spotify ID error' })
+          dictSpotifySongId[spotifySongId] = embFile
+        }
         that.beatsFiles.push({ filename: embFile, tags: tags, bpm: bpm, link: link, mp3URL: args[2], spotifySongId: spotifySongId, seqExists: seqExists, mp3Exists: mp3Exists })
       } // end of helper "lookin"
 

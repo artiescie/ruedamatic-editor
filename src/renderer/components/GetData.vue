@@ -1,20 +1,23 @@
 
 <template>
   <div>
-    <simplert :useRadius="true" :useIcon="true" ref="simplert"/>
     <b-card
       title="Get more...  schemes, new beats files, sample music with moves."
       tag="article"
       class="mb-2">
       <p v-if="listIsShown" >Select an item to download, and click the install button</p>
       <b-alert :show="!listIsShown">Click "List" to see a list of schemes (or other data) available.  </b-alert>
-      <b-alert :show="$store.state.settingsStore.settings.userType === '2'" variant="warning"><strong>Have you CHANGED ANY SCHEMES?</strong> If you have modified schemes (added, deleted, changed moves)
-         you need to save: new files may overwrite your changes!  RENAME your entire scheme folder to anything unique (dashboard, *edit* the scheme name).
-         E.g. rename your modified folder from <strong>"scheme_rueda_basica"</strong> to <strong>"scheme_rueda_basica_MY_VERSION"</strong>.
-         Then update to the latest version of "scheme_rueda_basica".  Both (the standard scheme and your new one) will be available.</b-alert>
+      <b-alert :show="$store.state.settingsStore.settings.userType === '2'" variant="warning"><strong>(SEQ : SCHEMES) : BEATS : MUSIC dependencies </strong> Downloaded files all have certain dependencies.
+         MUSIC stands alone.  BEATS will depend on the MUSIC they are based on.  SEQUENCES depend on BEATS and their particular SCHEME.  When downloading these components, download also their dependencies as listed.
+         To keep your custom moves, combos, and sequences you can rename the folders.  e.g. The default scheme is at Documents/RuedaMaticEditor/scheme_rueda_normal_basica.
+         You could rename your modified folder from <strong>"scheme_rueda_basica"</strong> to <strong>"scheme_rueda_basica_MY_VERSION"</strong>.
+         Then update to the latest version of "scheme_rueda_basica".  Both (the new standard and your renamed one) will be available.</b-alert>
       <b-alert :show="$store.state.settingsStore.settings.userType === '2'" variant="warning"><strong>Have you CHANGED SEQUENCES?</strong> And you haven't revised or added moves.  Then you
-        can update your scheme from the source whenever it is updated.  Your existing CALL SEQUENCES will be preserved.
-         And old moves should be preserved (We should never delete, or change) when you update a standard scheme.</b-alert>
+        can update your scheme from our server.  Your existing CALL SEQUENCES will be preserved.
+        And old moves should be preserved ideally. </b-alert>
+      <b-alert :show="$store.state.settingsStore.settings.userType === '1'" variant="warning">A <strong>'Caller'</strong> user can only update their available beats (compases).
+      You can do this to have more songs available for adding rueda calls.
+      </b-alert>
 
       <b-form-group>
         <b-form-radio-group v-if="availableSchemes" id="schemeList" v-model="selectedDataFile" name="flavour-2">
@@ -76,7 +79,9 @@ export default {
   computed: {
     availableSchemes () {
       // could be schemes, but also any other bundle with music, sequences, beats
-      return this.$store.state.movesStore.availableSchemes
+      const avails = this.$store.state.movesStore.availableSchemes
+      if (this.$store.state.settingsStore.settings.userType === '2') return avails
+      else return Array.isArray(avails) ? this.$store.state.movesStore.availableSchemes.filter(item => Object.keys(item)[0].includes('compases')) : []
     },
     availableSchemesKeys () {
       return this.availableSchemes ? Object.keys(this.availableSchemes) : []
