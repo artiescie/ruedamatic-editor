@@ -1,38 +1,38 @@
 <template>
   <!-- note: icons are from Font Awesome project, via vue-awesome -->
   <div>
-    <simplert :useRadius="true" :useIcon="true" ref="simplert"/>
+    <simplert :useRadius="true" :useIcon="true" ref="simplert" />
     <div>
       <div class="title" variant="success"><strong>RuedaMatic Data</strong><em> (hover for info)</em></div>
       <div class="items">
         <div v-if="this.getUserType === '2'" class="item" title="All the songs we have beats for (listed on Songs tab)">
           <div class="name">Beats files: </div>
           <div class="value">{{ beats.length }}
-             (too short: {{beats.filter(r => r.numMatches < INCOMPLETE_LIM).length}})&nbsp;
-            <b-button variant="warning" size="sm" class="py-0 alt" @click="showModalBeats = true" ><v-icon class="m-1" scale=1 name="drum"/>Incompletes</b-button>
+            (too short: {{ beats.filter(r => r.numMatches < INCOMPLETE_LIM).length }})&nbsp; <b-button variant="warning"
+              size="sm" class="py-0 alt" @click="showModalBeats = true"><v-icon class="m-1" scale=1
+                name="drum" />Incompletes</b-button>
           </div>
         </div>
-        <div v-if="this.getUserType === '2'" class="item" title="If you have more than 1 scheme (sets of moves), you can change scheme in top green navbar dropdown.
+        <div v-if="this.getUserType === '2'" class="item" title="If you multiple schemes, you can change to another scheme (top green navbar dropdown).
 For example: you might have a 'scheme' of moves for basic rueda, one for advanced rueda, and one for salsa suelta.">
           <div class="name">Installed Schemes: </div>
           <div class="value">{{ $store.state.movesStore.installedSchemes.length }} &nbsp;
-            <b-button  variant="warning" size="sm" class="py-0 alt" @click="getSchemeData(); showModalSchemes = true" >
-              <v-icon  class="m-1" scale=1 name="th-large"/>{{getUserType === '2' ? 'Edit/Delete' : 'View'}}</b-button>
-            <b-button v-if="getUserType === '2'"  variant="warning" size="sm" class="py-0 alt" @click="schemeMode='create'; gFetSchemeData(); showModalSchemeEdit = true" >
-              <v-icon  class="m-1" scale=1 name="plus"/>Create</b-button>
+            <b-button variant="warning" size="sm" class="py-0 alt" @click="getSchemeData(); showModalSchemes = true">
+              <v-icon class="m-1" scale=1 name="th-large" />{{ getUserType === '2' ? 'Edit/Delete' : 'View' }}</b-button>
+            <b-button v-if="getUserType === '2'" variant="warning" size="sm" class="py-0 alt"
+              @click="schemeMode = 'create'; getSchemeData(); showModalSchemeEdit = true">
+              <v-icon class="m-1" scale=1 name="plus" />Create</b-button>
           </div>
         </div>
-        <div class="item" :style="{background: 'Cornsilk'}" title="
+        <div class="item" :style="{ background: 'Cornsilk' }" title="
 Control how calls are loaded (use Loader in the Songs tab):
 YES: Will generate moves on the fly for songs, and call them ('autofill')
 NO: If song has a mic icon on the load button: load the preset sequence available for that song, play that
 Hit 'Alt-X' to dump out the autofill logic">
           <div class="name">Use Autofill for ALL SONGS?</div>
           <div class="value">
-            <b-form-select size="sm" ref="autoplayFlag"
-              :options="[{text:'NO',value:1},{text:'YES',value:2}]"
-              :state="presetOrAutofill===2"
-              v-model="presetOrAutofill" />
+            <b-form-select size="sm" ref="autoplayFlag" :options="[{ text: 'NO', value: 1 }, { text: 'YES', value: 2 }]"
+              :state="presetOrAutofill === 2" v-model="presetOrAutofill" />
           </div>
         </div>
         <div class="item" title="Number of Moves on the moves tab for this scheme.
@@ -40,14 +40,17 @@ Excludes the reserved move 'Continue'">
           <div class="name">Moves:</div>
           <div class="value">{{ numberOfMoves }}&nbsp;
             <span v-if="this.getUserType === '2'">
-              <b-button variant="warning" size="sm" class="py-0 alt" @click="callDiagMovesWithUsage()" title="Check move usage in Combos and Sequences">
-                <v-icon class="m-1" scale=1 name="notes-medical"/>Usage
+              <b-button variant="warning" size="sm" class="py-0 alt" @click="callDiagMovesWithUsage()"
+                title="Check move usage in Combos and Sequences">
+                <v-icon class="m-1" scale=1 name="notes-medical" />Usage
               </b-button>
-              <b-button size="sm" @click="showMoveIssues=true" class="py-0 alt" variant="danger" :hidden="hideMoveIssues">
-                <v-icon class="m-1" scale=1 name="notes-medical"/> Issues
+              <b-button size="sm" @click="showMoveIssues = true" class="py-0 alt" variant="danger"
+                :hidden="hideMoveIssues">
+                <v-icon class="m-1" scale=1 name="notes-medical" /> Issues
               </b-button>
-              <b-button variant="warning" size="sm" class="py-0 alt" @click="callDiagCombos()"  title="Dump an autofill dry-run, for all combos, on all available songs">
-                <v-icon class="m-1" scale=1 name="notes-medical"/>Autofill test
+              <b-button variant="warning" size="sm" class="py-0 alt" @click="callDiagCombos()"
+                title="Dump an autofill dry-run, for all combos, on all available songs">
+                <v-icon class="m-1" scale=1 name="notes-medical" />Autofill test
               </b-button>
             </span>
           </div>
@@ -65,8 +68,9 @@ May need to click Accent below if changing">
         <div class="item" title="If you create and share,
 this id will be shown when people use your work.">
           <div class="name">Author ID:</div>
-          <span><span class="value">{{ authorId }} </span><span>&nbsp;<b-button variant="warning" size="sm" class="py-0 alt"
-              @click="getAuthor" ><v-icon  class="m-1" scale=1 name="portrait"/>Change</b-button></span>
+          <span><span class="value">{{ authorId }} </span><span>&nbsp;<b-button variant="warning" size="sm"
+                class="py-0 alt" @click="getAuthor"><v-icon class="m-1" scale=1
+                  name="portrait" />Change</b-button></span>
           </span>
         </div>
         <div class="item" title="Calls can be made during the 1, 2, 3, or 4-count">
@@ -74,7 +78,7 @@ this id will be shown when people use your work.">
           <span>
             <span>
               <b-form-select size="sm"
-                :options="[{text:'Call during the 1 count',value:1},{text:'Call during the 2 count',value:2},{text:'Call during the 3 count',value:3},{text:'Call during the 4 count',value:4}]"
+                :options="[{ text: 'Call during the 1 count', value: 1 }, { text: 'Call during the 2 count', value: 2 }, { text: 'Call during the 3 count', value: 3 }, { text: 'Call during the 4 count', value: 4 }]"
                 v-model="beatToCallOn" />
             </span>
           </span>
@@ -82,14 +86,14 @@ this id will be shown when people use your work.">
         <div v-if="this.getUserType === '2'" class="item" title="If you are currently adding MP3 Call files to the vueltas folder,
 click here to update counts and validations shown above">
           <div class="name">On add/remove Call files:</div>
-          <span><span>  <b-button variant="warning" size="sm" class="py-0 alt"
-              @click="refreshForNewCallFiles" > <v-icon  class="m-1" scale=1 name="sync"/>Refresh</b-button></span>
+          <span><span> <b-button variant="warning" size="sm" class="py-0 alt" @click="refreshForNewCallFiles"> <v-icon
+                  class="m-1" scale=1 name="sync" />Refresh</b-button></span>
           </span>
         </div>
         <div class="item" title="Browse the RM internal working folders">
           <div class="name">Browse RuedaMatic folders</div>
-          <span><span>  <b-button variant="warning" size="sm" class="py-0 alt"
-              @click="openFileExplorer" > <v-icon  class="m-1" scale=1 name="home"/> Browse</b-button></span>
+          <span><span> <b-button variant="warning" size="sm" class="py-0 alt" @click="openFileExplorer"> <v-icon
+                  class="m-1" scale=1 name="home" /> Browse</b-button></span>
           </span>
         </div>
       </div>
@@ -97,47 +101,48 @@ click here to update counts and validations shown above">
       <div class="items">
         <div class="item" title="Version you are using of this program">
           <div class="name">Ver </div>
-          <div class="value">{{ ruedamaticversion }} </div>&nbsp;<div class="name">Built Fri Oct 11, 2024 - (09:16 AM)</div>
+          <div class="value">{{ ruedamaticversion }} </div>&nbsp;<div class="name">Built Fri Aug 01, 2025 - (08:56 PM)
+          </div>
         </div>
       </div>
-      <div v-if="this.getUserType === '2'" class="title" :title="getSpotifyTooltip"><strong>RM-spot</strong><em> (hover for info)</em></div>
+      <div v-if="this.getUserType === '2'" class="title" :title="getSpotifyTooltip"><strong>RM-spot</strong><em> (hover
+          for info)</em></div>
       <div v-if="this.getUserType === '2'" class="items">
         <div class="item" title="Data used by the RM-spot website - combines rueda calls with spotify music">
           <div class="name">Prep data for RM-spot:</div>
-          <b-button variant="warning" size="sm" class="py-0 alt" :disabled="bCreatingRmData"
-              @click="getSpotify" ><v-icon  class="m-1" scale=1 name="portrait"/>Create</b-button>
-              <pulse-loader v-if="bCreatingRmData" color="red" style="height: 27px;display: inline-block;align-items: center;justify-content: center" />
+          <b-button variant="warning" size="sm" class="py-0 alt" :disabled="bCreatingRmData" @click="getSpotify"><v-icon
+              class="m-1" scale=1 name="portrait" />Create</b-button>
+          <pulse-loader v-if="bCreatingRmData" color="red"
+            style="height: 27px;display: inline-block;align-items: center;justify-content: center" />
         </div>
       </div>
     </div>
 
-    <b-modal id="getSpotify" title="Create RM-Spot data: Audiosprite for this scheme, and list of RM songs" ok-title="Dismiss" ok-only>
-      <p>Web app RM-spot needs a special version of the voice calls, appending all the call files to a single "sprite" file in the rm-spot folder.  Also
-        it needs a link file, listing Spotify song ID for each song that can be played with rm-spot.
+    <b-modal id="getSpotify" title="Create RM-Spot data: Audiosprite for this scheme, and list of RM songs"
+      ok-title="CREATE all rm-assets data" ok-only @ok="createRmsData">
+      <p>Web app RM-spot needs a special version of the voice calls, appending all the call files to a single "sprite"
+        file in the rm-spot folder. Also updates rm-assets: beats, moves, combos, pastable lists, available song list.
       </p>
-      <b-form-fieldset title="Update the RM-spot web rueda calls." >
-        <b-btn variant="success" class="m-1" @click="createAudiospriteAndSonglist" :disabled="bCreatingRmData"
-          title="Advanced: Generate Audiosprites for RM-Spot for all calls in the scheme, plus updated songs list">CREATE RM-SPOT data
-        </b-btn>
-      </b-form-fieldset>
     </b-modal>
 
     <b-modal id="getAuthor" title="Author id" @ok="saveAuthor" @shown="$refs.authorID.focus()">
-      <p>ID is saved in files you work on.  Try to be unique!</p>
+      <p>ID is saved in files you work on. Try to be unique!</p>
       <b-form-fieldset title="Saved in files you work on." label-cols="3" label="Author ID:">
-        <b-form-input v-model="workingAuthorID" ref="authorID"/>
+        <b-form-input v-model="workingAuthorID" ref="authorID" />
       </b-form-fieldset>
     </b-modal>
 
     <!-- showModalSchemeEdit used for Edit and Create scheme details -->
-    <b-modal v-model="showModalSchemeEdit" id="editScheme" :title="schemeMode==='create'?'Create Scheme':'Edit Scheme'"
-        :ok-disabled="schemeDlgName4GUI.length <= 3" @ok="handleSchemeUpdate" @shown="$refs.schemeName.focus()">
-      <p>{{schemeMode==="create"?'Create new scheme. (lower case, underscores not spaces)': 'If name is changed, the change flows through related move and sequence files.  Old Name is: \'' + oldSchemeName + '\''}}</p>
-      <b-form-fieldset title="Longer than 3 characters; lowercase; diacritics; and underscore accepted" label-cols="3" label="Name: ">
-        <b-form-input v-model="schemeDlgName4GUI" ref="schemeName"/>
+    <b-modal v-model="showModalSchemeEdit" id="editScheme" :title="schemeMode === 'create' ? 'Create Scheme' : 'Edit Scheme'"
+      :ok-disabled="schemeDlgName4GUI.length <= 3" @ok="handleSchemeUpdate" @shown="$refs.schemeName.focus()">
+      <p>{{ schemeMode === "create" ? 'Create new scheme. (lower case, underscores not spaces)' :
+        'If name is changed, the change flows through related move and sequence files. Old Name is: \'' + oldSchemeName + '\''}}</p>
+      <b-form-fieldset title="Longer than 3 characters; lowercase; diacritics; and underscore accepted" label-cols="3"
+        label="Name: ">
+        <b-form-input v-model="schemeDlgName4GUI" ref="schemeName" />
       </b-form-fieldset>
       <b-form-fieldset title="60 characters will be saved." label-cols="3" label="Description: ">
-        <b-form-textarea v-model="schemeDlgDescription" ref="schemeDescription"/>
+        <b-form-textarea v-model="schemeDlgDescription" ref="schemeDescription" />
       </b-form-fieldset>
     </b-modal>
 
@@ -145,9 +150,9 @@ click here to update counts and validations shown above">
       <p>Schemes created or installed on this computer.</p>
       <b-table :items="schemeData" :fields="schemeFields">
         <template v-if="getUserType === '2'" v-slot:cell(actions)="row">
-          <b-btn variant="warning" size="sm" @click="schemeMode='edit'; details(row.item)">Edit
+          <b-btn variant="warning" size="sm" @click="schemeMode = 'edit'; details(row.item)">Edit
           </b-btn>
-          <b-btn variant="danger" size="sm" @click="schemeMode='delete'; showDeleteDlg(row.item)">Delete
+          <b-btn variant="danger" size="sm" @click="schemeMode = 'delete'; showDeleteDlg(row.item)">Delete
           </b-btn>
         </template>
         <template v-else v-slot:cell(actions)="row">(Wizard only)</template>
@@ -160,11 +165,11 @@ click here to update counts and validations shown above">
         <template #cell(show_details)="row">
           <b-button variant="warning" size="sm" @click="row.toggleDetails" class="mr-2">
             <!-- this causes "do not mutate vuex store state" warning in development: ignore per advice -->
-            {{ row.detailsShowing ? 'Hide' : 'Show'}} details
+            {{ row.detailsShowing ? 'Hide' : 'Show' }} details
           </b-button>
         </template>
         <template #row-details="row">
-          <b-card >
+          <b-card>
             <b-row style="display: inline-block" v-html="row.item.details" class="mb-2">
             </b-row>
           </b-card>
@@ -173,20 +178,32 @@ click here to update counts and validations shown above">
     </b-modal>
 
     <b-modal v-model="showMoveIssues" id="moveIssues" title="Move Issues" size="xl">
-      <h6><em>Critical Move integrity issues were found.</em> <br><blockquote>These should not happen, if they do, they must be corrected.  If interface can't fix, then fix them manually with a text editor!</blockquote></h6>
-      <div style="display: inline-block"
-        v-html="'FIX these bad moves in a song\'s .seq file:' + $store.state.movesStore.msgUnmatchedSeqs + '<br>' +
-        'FIX these bad combo moves:' + $store.state.movesStore.msgUnmatchedCombos" ></div>
+      <h6><em>Critical Move integrity issues were found.</em> <br>
+        <blockquote>These should not happen, if they do, they must be corrected. If interface can't fix, then fix them
+          manually with a text editor!</blockquote>
+      </h6>
+      <div style="display: inline-block" v-html="'FIX these bad moves in a song\'s .seq file:' + $store.state.movesStore.msgUnmatchedSeqs + '<br>' +
+        'FIX these bad combo moves:' + $store.state.movesStore.msgUnmatchedCombos"></div>
       <!-- <div style="display: inline-block" v-html="'<h1> Trouble! </h1>'" ></div> -->
     </b-modal>
 
-    <b-modal v-model="showModalBeats" id="modalBeats" title="Incomplete beats files" size="xl">
-      <p v-if="beats.filter(r => r.numMatches < INCOMPLETE_LIM).length > 0" >These beats appear to be incomplete (&lt;{{INCOMPLETE_LIM}} beats in the file):</p>
-      <p v-else>No incomplete beats files detected (&lt;{{INCOMPLETE_LIM}} beats in the file)</p>
+    <b-modal v-if="showModalRms" v-model="showModalRms" id="modalBeats" title="Stats from generating RM spot data" size="xl" ok-only>
+      <p>Location: <strong><em>{{rmsStats.rmsRoot}}</em></strong></p>
+      Songs: {{rmsStats.beats.songCount.new.count}} - Shortest: {{rmsStats.beats.songCount.new.min.song}} ({{rmsStats.beats.songCount.new.min.beatCount}} beats)
+      <br>
+      Schemes:
       <ul>
-        <li v-for="(item, index) in beats.filter(r => r.numMatches < INCOMPLETE_LIM)" :key="index">
-          {{getBasename(item.file)}}
-        </li>
+        <li v-for="(item, index) in Object.keys(rmsStats.schemes)" :key="index">
+          {{ item }} :
+           <ul>
+            <li>Audiosprite calls: {{rmsStats.schemes[item].audioSprite.count}}
+              (time to prep: {{Math.round(rmsStats.schemes[item].audioSprite.timeToPrep/1000)}} sec)
+            </li>
+            <li>combos / moves : {{rmsStats.schemes[item].combosCount}} / {{rmsStats.schemes[item].movesCount}}</li>
+            <li>presets : {{rmsStats.schemes[item].presetListCount}}
+               (RME seq missing Spot ID : {{rmsStats.schemes[item].sequencesCount - rmsStats.schemes[item].presetListCount}})</li>
+          </ul>
+         </li>
       </ul>
     </b-modal>
 
@@ -201,10 +218,11 @@ import { exec } from 'child_process'
 import DiscDataHelper from '../../store/shared/DiscDataHelper.js'
 import fs from 'fs-extra'
 import klawSync from 'klaw-sync' // file system walker
-import replace from 'replace-in-file'
+import riff from 'replace-in-file'
 import createAudioSprite from './audiosprite-breezy'
 import AutoFiller from './../Songs/AutoFiller'
 import _sortBy from 'lodash/sortBy'
+import xml2js from 'xml2js'
 
 const DOCDIR = electron.remote.app.getPath('documents')
 const RMDIR = DOCDIR + '/RuedaMaticEditor'
@@ -215,23 +233,23 @@ const DLDIR = electron.remote.app.getPath('downloads')
 let SEQDIR // = RMDIR + '/' + this.RMEFolder.substring + '/secuencias_para_canciones'
 let VUELTASDIR // = RMDIR + '/' + this.RMEFolder.substring + '/vueltas'
 
-if ((fs, klawSync, replace, SEQDIR, VUELTASDIR)) console.log('keep unused declarations')
+if ((fs, klawSync, riff, SEQDIR, VUELTASDIR)) console.log('keep unused declarations')
 
 const discDataHelper = new DiscDataHelper()
 
 export default {
   data () {
     return {
+      showModalRms: false, // display results of RM Spot data generation
+      rmsStats: {}, // stats for generating rm-spot data
+      traceStep: '', // for error tracing in createRmsData
       bCreatingRmData: false, // the busy wheel for prep of RM-spot audiosprite
       diagTitle: '',
       diagContent: '',
       workingAuthorID: this.$store.state.settingsStore.settings.authorId, // initial value
-      // Sentinel value to flag the beats as likely incomplete, due to low number.
       //   This probably shows items that user intended to delete but forgot!
-      INCOMPLETE_LIM: 40,
-      // beats - computed on opening the schemes dialog
-      beats: [],
-      // modal schemes
+      INCOMPLETE_LIM: 40, // Likely incomplete, due to low number.  Probably unfinished and forgotten
+      beats: [], // beats - computed on opening the schemes dialog
       showModalSchemes: false, // model for open/close schemes modal window,
       showModalSchemeEdit: false, // edit/create scheme modal
       showModalBeats: false, // model for open/close beats modal window,
@@ -286,6 +304,7 @@ export default {
       schemeData: [], // filled on opening the scheme dialog, by getSchemeData
       schemeDlgName4GUI: '',
       oldSchemeName: '',
+      newSchemeName: '',
       oldSchemeDescription: '',
       schemeDlgDescription: '',
       schemeMode: '', // 'edit' | 'create'
@@ -295,7 +314,7 @@ export default {
   activated () {
     this.refreshForNewCallFiles() // called also on render
     // countBeats
-    const results = replace.sync({
+    const results = riff.sync({
       files: path.join(RMDIR, 'compases_para_canciones', '*.xml'),
       from: /^\s*<beat.*>[0-9]*<\/beat>\s*$/gm,
       to: 'dryrun',
@@ -418,12 +437,362 @@ export default {
     }
   },
   methods: {
+    createRmsData () {
+      // overall error trap for implementation synchronous code
+      // eslint-disable-next-line prefer-const
+      try {
+        this.createRmsDataImpl()
+      } catch (err) {
+        this.$bvToast.toast(`ERROR in createRmsData traceStep ${this.traceStep}: ${err}`, { title: 'ERROR', variant: 'danger', 'no-auto-hide': true })
+      }
+    },
+    createRmsDataImpl () {
+      // genereate the data needed by rm-spot (RMS) )the spotify version of rueda-matic
+      // mostly it's about converting XML format used by RME (ruedamatic-editor) to JSON
+
+      const that = this // Vue might hide the "this" pointer
+
+      // counters for final report
+      //   e.g. results.beats
+      //        results.[scheme].[moves | combos]
+      //        results.[scheme].[sequences]
+      //        results.audiosprite
+      // Asynch final step, call reportCountdown: shows the report when final audiosprite is done/or no sprites done.
+      this.traceStep = '0' // beginning
+      const results = {} // on finish, we'll report result this in message box
+      const errors = '' // on errors in synch code we'll report this
+      // eslint-disable-next-line prefer-const, no-unused-vars
+      let iterCount = 0 // reusable iteration counter
+      console.log(errors)
+
+      // [-1-] MAKE A TAGS DICTIONARY
+      //   [-1a-] get the TAGS from the SEQUENCE files, store in dict by song NAME
+      //    TAGS are extra fields from the Sequence maker to the player, to relay info about the choreography
+      this.traceStep = '1a'
+      const dictSongIds = {}
+      const dictSeqTags = {}
+      const srcSchemes = this.$store.state.movesStore.installedSchemes
+      const dictShortBeatsWarning = {}
+      // const allSchemes = this.$store.state.movesStore.installedSchemes
+      // make sure the key folders exist
+      //  all levels of tree are created if necessary
+      fs.ensureDirSync(path.join(RMSPOT, 'compases_para_canciones'))
+      srcSchemes.forEach((sch) => {
+        fs.ensureDirSync(path.join(RMSPOT, sch, 'secuencias_para_canciones'))
+      })
+      // setup skeleton object for results
+      results.rmsRoot = RMSPOT
+      results.beats = {}
+      results.schemes = {}
+      results.beats.songCount = {}
+      results.beats.songCount.new = {}
+      results.beats.songCount.new.count = 0 // count of RMS song after run
+      results.beats.songCount.new.min = {} // count of RMS song after run
+      results.beats.songCount.new.min.song = '' // name of song with shortest beats after run
+      results.beats.songCount.new.min.beatCount = 999 // no of beats in shortest song
+
+      results.allSongsPasteCount = 0
+      srcSchemes.forEach((sch) => {
+        results.schemes[sch] = {} // moves, combos, sprites, counts (count)
+        // for counts: ➖removed, ➕added
+        results.schemes[sch].presetListCount = 0 // presets shown to user
+        results.schemes[sch].sequencesCount = 0 // each song sequence (count)
+        results.schemes[sch].audioSprite = {} // for count, refreshNeeded
+        results.schemes[sch].audioSprite.count = 0 // count, refreshNeeded
+        results.schemes[sch].audioSprite.refreshNeeded = false // count, refreshNeeded
+        results.schemes[sch].audioSprite.timeToPrep = 0 // how long to create audiosprite
+      })
+
+      riff.sync({
+        // process files in directory and create a dictionary of songs with sequences
+        files: path.join(RMDIR, '*', 'secuencias_para_canciones', '*.seq'),
+        from: /^.*<author.*tags="(.*)".*<\/author>$/gm,
+        to: (...args) => {
+          const pathBits = args[4].split('/')
+          // trim path to start at Documents, safe if 'OneDrive' now is possibly part of Documents path
+          while (pathBits.shift() !== 'Documents') {
+          }
+          const schemeDir = pathBits[1]
+          const file = pathBits[3].replace('.seq', '')
+          if (!Object.keys(dictSeqTags).includes(file)) dictSeqTags[file] = {}
+          dictSeqTags[file][schemeDir] = args[1] || '_noTags'
+        },
+        countMatches: true,
+        dry: true
+      })
+
+      // [-1b-] . get the song ID and song name from the BEATS files
+      this.traceStep = '1b'
+      riff.sync({
+        files: path.join(RMDIR, 'compases_para_canciones', '**', '*.xml'),
+        from: /^.*<musicfile.*bpm="(\d*)">(.*).m..<\/musicfile>\n.*spotifySongId="([a-zA-Z0-9]{22})".*\n.*<beats>((\n|.)*?)<\/beats>.*$/gm,
+        to: (...args) => {
+          const bpm = args[1] || 0
+          const currentSong = args[2] || ''
+          const spotId = args[3]
+          if (dictSongIds[spotId]) that.$bvModal.msgBoxOk('WARNING: Duplicate Spotify songID: ' + spotId, { title: 'Duplicate Spotify ID error' })
+          dictSongIds[spotId] = { file: currentSong, bpm: bpm, schemeTags: {} } // fill the tags next!
+          const currentSongBeats = (args[4].match(/beat/g) || []).length
+          // get data for warning, step [2] below
+          if (currentSongBeats < 30) {
+            dictShortBeatsWarning[currentSong] = currentSongBeats
+          }
+        },
+        countMatches: true,
+        dry: true
+      })
+
+      // [-1c-] combine 1b with a lookup from 1a, so we have dict KEY = Spotify ID, VALUE: {songName: xxx, schemes { scheme1: tags, scheme2: tags, .... }}
+      this.traceStep = '1c'
+      const dictPastablePlaylists = {} // use this iteration to build the structure for the next step
+      for (const [spotId, value] of Object.entries(dictSongIds)) {
+        if (Object.keys(dictSeqTags).includes(value.file)) {
+          dictSongIds[spotId].schemeTags = dictSeqTags[value.file]
+          if (value.schemeTags) {
+            for (const [scheme, tags] of Object.entries(value.schemeTags)) {
+              // we used previous step to make the basic structure of dictPastablePlaylists
+              if (!dictPastablePlaylists[scheme]) dictPastablePlaylists[scheme] = []
+              dictPastablePlaylists[scheme].push({ spotId: spotId, name: value.file, tags: tags, bpm: value.bpm })
+            }
+          }
+        }
+      }
+
+      // [-2-] warn user about possibly incomplete beats files
+      this.traceStep = '2'
+      if (Object.entries(dictShortBeatsWarning).length) {
+        this.$bvModal.msgBoxOk('WARNING: some beats files are very short: \n' + JSON.stringify(dictShortBeatsWarning, null, 2), { title: 'Issue found generating rm-spot-songs.json' })
+      }
+
+      // [-3-] CATALOG of available songs shown by the Spotify web client, rm-spot
+      this.traceStep = '3'
+      const spotFile = path.join(RMSPOT, 'rm-spot-songs.json')
+      // a list of IDs each prefixed "spotify:track:" can be pasted in the UI into a playlist
+      fs.writeFileSync(spotFile, JSON.stringify(dictSongIds, null, 2), 'utf8')
+
+      // [-4-] CATALOG of available songs shown by the Spotify web client, rm-spot
+      //   Can copy it from a text editor, and paste it into the Spotify app while looking at playlist
+      //    called "":/rm-spot/:  ALL"
+      this.traceStep = '4'
+      const pasteListPrep = _sortBy(Object.entries(dictSongIds), presetSong => parseInt(presetSong[1].bpm))
+      const pasteList = pasteListPrep.map(k => 'spotify:track:' + k[0]).join('\n')
+      const pasteFile = path.join(RMSPOT, 'pastable-autofill-playlist-allsongs.txt')
+      results.allSongsPasteCount = pasteListPrep.length
+      fs.writeFileSync(pasteFile, pasteList, 'utf8')
+
+      // [-5-] the Spotify ordered pastable list of songs and tags for each scheme
+      //   currently Oct-2024 ":/rm-spot/: Abaco PRESETS" and ":/rm-spot/: Rueda PRESETS"
+      this.traceStep = '5'
+      for (const scheme of Object.keys(dictPastablePlaylists)) {
+        const presetListPrep = _sortBy(dictPastablePlaylists[scheme], ['tags', 'bpm']) // slower songs first
+        const presetList = presetListPrep.map(p => 'spotify:track:' + p.spotId).join('\n')
+        const spotFile = path.join(RMSPOT, 'pastable-presets-playlist-' + scheme + '.txt')
+        results.schemes[scheme].presetListCount = presetListPrep.length
+        fs.writeFileSync(spotFile, presetList, 'utf8')
+      }
+
+      // [-6-] now the AUDIOSPRITE: web has it's own latency problem with loading lots of small mp3 files.  Solution is to use a single
+      //   appended list, with an offset index, and the player can access all calls from a single file
+      //   as of Oct 2024, outputs are "scheme_abaco.mp3", "scheme_rueda_normal_basica.mp3"
+      //     and index files "scheme_abaco.json", "scheme_rueda_normal_basica.json"
+      this.traceStep = '6'
+      let schToDo = 0
+      let schDone = 0
+      srcSchemes.forEach((sch) => {
+        results.schemes[sch].audioSprite.refreshNeeded = false
+        results.schemes[sch].audioSprite.timeToPrep = 0
+        const timeStart = new Date()
+        this.bCreatingRmData = true // show busy
+        if (this.isAudiospriteStale(sch, results)) {
+          schToDo += 1
+          results.schemes[sch].audioSprite.refreshNeeded = true
+          console.log(`making audiosprite for scheme: ${sch}`)
+          const callsGlob = [RMDIR.replace(/\\/g, '/') + '/' + sch + '/vueltas/*.mp3'] // AudrioSprite requires unix path separator
+          const options = {
+            output: RMSPOT + '/' + sch + '/' + sch,
+            export: 'mp3',
+            format: 'howler2',
+            silence: 1,
+            store: true
+          }
+
+          createAudioSprite(callsGlob, options)
+            .then((result) => {
+              results.schemes[sch].audioSprite.timeToPrep = new Date() - timeStart
+              console.log(result)
+              console.log(`Writing audiosprite json file: ${sch}.json`)
+              // result.sprite is a JSON index to locate each call, to be played by rm-spot
+              fs.writeFileSync(RMSPOT + '/' + sch + '/' + sch + '.json', JSON.stringify(result.sprite))
+            })
+            .catch((err) => {
+              console.log(err)
+              this.$bvToast.toast('ERROR: ' + err.message, { title: 'Audiosprite ffmpeg error' })
+            })
+            .finally(() => {
+              schDone += 1
+              if (schToDo === schDone) {
+                this.bCreatingRmData = false // show busy
+                this.rmsStats = results
+                this.showModalRms = true
+              }
+            })
+        } else {
+          if (schToDo === schDone) {
+            this.bCreatingRmData = false // show busy
+            this.rmsStats = results
+            this.showModalRms = true
+          } else {
+            this.$bvToast.toast('Updating audiosprites for each scheme, this may take a few minutes... ', { title: 'Please wait' })
+          }
+          console.log(`audiosprite for scheme: ${sch} is already up to date`)
+        }
+      })
+      // ... now the other rm-spot data files that need to be up-to-date: beats, sequences, combos + moves
+
+      // jsoner, jsParser, clearFileType - shared helper code is first
+      // HELPER
+      let jsParser
+      function jsoner (inFolder, inFname) {
+        let retData
+        if (!jsParser) jsParser = new xml2js.Parser()
+        const inPath = path.join(inFolder, inFname)
+        jsParser.parseString(fs.readFileSync(inPath, 'utf8'), function (err, data) {
+          if (err) throw new Error(`Error reading ${inFname}!`)
+          retData = data
+        })
+        return retData
+      }
+
+      // clearFileType - in a given folder, clear all files of an extension.
+      // Return filenames that were found NOT of that type.
+      // HELPER
+      function clearFiletype (folderPath, fileExt) {
+        // fileExt argument INCLUDES the "."?
+        const misfits = [] // files with incorrect extension if specified (prob should delete!)
+        let numFiles = 0
+        if (fileExt.substring(0, 1) !== '.') fileExt = '.' + fileExt
+        const extList = fs.readdirSync(folderPath)
+        extList.forEach((xFile) => {
+          if (path.extname(xFile) === fileExt || fileExt === '*') {
+            fs.removeSync(path.join(folderPath, xFile))
+            numFiles += 1
+          } else {
+            misfits.push(xFile)
+          }
+        })
+        return { clearing: { misfits: misfits, numFiles: numFiles } }
+      }
+      // reused vars
+      let inFolder, inputFileList, outFolder
+
+      // BEATS: AVAILABLE FOR ALL SCHEMES
+      // traceStep [-7-]
+      //   ex INPUT C:\Users\ssi\OneDrive\Documents\RuedaMaticEditor\compases_para_canciones\01 La Calle Me Llama.xml
+      //   ex OUTPUT: C:\Users\ssi\OneDrive\Documents\RuedaMaticEditor\rm-spot\compases_para_canciones\01 La Calle Me Llama.json
+      this.traceStep = '7'
+      outFolder = path.join(RMDIR, 'rm-spot', 'compases_para_canciones')
+      clearFiletype(outFolder, '*')
+      inFolder = path.join(RMDIR, 'compases_para_canciones')
+      inputFileList = fs.readdirSync(inFolder)
+      results.beats.songCount.new.count = inputFileList.length
+      iterCount = 0
+      const badXmlFiles = [] // badfiles in the RME original folder
+      inputFileList.forEach((xFile) => {
+        const inExt = path.extname(xFile)
+        if (inExt === '.xml') {
+          const outExt = '.json'
+          const outFname = path.basename(xFile, path.extname(xFile)) + outExt
+          const outPath = path.join(outFolder, outFname)
+          const data = jsoner(inFolder, xFile)
+          iterCount += 1
+          const lenBeats = data.root.beats[0].beat.length
+          if (lenBeats < results.beats.songCount.new.min.beatCount) { // beatCount has been primed at high number 999
+            results.beats.songCount.new.min.beatCount = lenBeats
+            results.beats.songCount.new.min.song = xFile
+          }
+          fs.writeFileSync(outPath, JSON.stringify(data.root.beats[0].beat, null, 2), 'utf8')
+        } else {
+          badXmlFiles.push(xFile)
+          console.log('bad file in ' + inFolder + ', ' + xFile)
+        }
+      })
+
+      // SEQUENCES: [-8-]FOR EACH SCHEME
+      //   ex INPUT: C:\Users\ssi\OneDrive\Documents\RuedaMaticEditor\scheme_abaco\secuencias_para_canciones\01 La Calle Me Llama.seq
+      //   ex OUTPUT: C:\Users\ssi\OneDrive\Documents\RuedaMaticEditor\rm-spot\scheme_abaco\secuencias_para_canciones\01 La Calle Me Llama.jseq
+      this.traceStep = '8'
+      srcSchemes.forEach((sch) => {
+        outFolder = path.join(RMDIR, 'rm-spot', sch, 'secuencias_para_canciones')
+        clearFiletype(outFolder, '*')
+        inFolder = path.join(RMDIR, sch, 'secuencias_para_canciones')
+        inputFileList = fs.readdirSync(inFolder)
+        results.schemes[sch].sequencesCount = 0
+        inputFileList.forEach((xFile) => {
+          // if not included in the preset list above, one of these may be hidden in RNS
+          // REASON: spotify ID is missing in RME
+          const inExt = path.extname(xFile)
+          if (inExt === '.seq') {
+            results.schemes[sch].sequencesCount += 1
+            const outExt = '.jseq'
+            const outFname = path.basename(xFile, path.extname(xFile)) + outExt
+            const outPath = path.join(outFolder, outFname)
+            const data = jsoner(inFolder, xFile)
+            fs.writeFileSync(outPath, JSON.stringify({ moves: data.root.sequences[0].sequence[0].move }, null, 2), 'utf8')
+          } else {
+            console.log('bad file in ' + inFolder + ', ' + xFile)
+          }
+        })
+      })
+      // [-9-] COMBOS + MOVES: FOR EACH SCHEME
+      //   ex INPUT: C:\Users\ssi\OneDrive\Documents\RuedaMaticEditor\scheme_abaco\vueltas\moves.xml (includes combos)
+      //   ex OUTPUT: C:\Users\ssi\OneDrive\Documents\RuedaMaticEditor\rm-spot\scheme_abaco\moves.xml (+ separate combos.xml)
+      //  first COMBOS, from the SAME SOURCE FILE moves.xml
+      this.traceStep = '9'
+      srcSchemes.forEach((sch) => {
+        outFolder = path.join(RMDIR, 'rm-spot', sch)
+        inputFileList = ['moves.xml']
+        inFolder = path.join(RMDIR, sch, 'vueltas')
+        inputFileList.forEach((xFile) => {
+          try {
+            const outExt = '.json'
+            const outFname = 'combos' + outExt
+            const outPath = path.join(outFolder, outFname)
+            const data = jsoner(inFolder, xFile)
+            const lenCombos = data.root.combos[0].combo.length
+            results.schemes[sch].combosCount = lenCombos
+            fs.writeFileSync(outPath, JSON.stringify(data.root.combos[0].combo, null, 2), 'utf8')
+          } catch (err) {
+            console.error(`Probably no Combos (or Moves) for scheme ${sch}: ` + err.message)
+            results.schemes[sch].combosCount = 0 // present this as PROBLEM!
+          }
+        })
+        //  now MOVES, from the SAME SOURCE FILE moves.xml
+        outFolder = path.join(RMDIR, 'rm-spot', sch)
+        inputFileList = ['moves.xml']
+        inFolder = path.join(RMDIR, sch, 'vueltas')
+        inputFileList.forEach((xFile) => {
+          try {
+            const outExt = '.json'
+            const outFname = 'moves' + outExt
+            const outPath = path.join(outFolder, outFname)
+            const data = jsoner(inFolder, xFile)
+            const lenMoves = data.root.moves[0].move.length
+            results.schemes[sch].movesCount = lenMoves
+            fs.writeFileSync(outPath, JSON.stringify(data.root.moves[0].move, null, 2), 'utf8')
+          } catch (err) {
+            results.schemes[sch].movesCount = 0 // present this as PROBLEM!
+          }
+        })
+      })
+      if (!this.bCreatingRmData) {
+        this.rmsStats = results
+        this.showModalRms = true
+      }
+    },
     callDiagCombos () {
       this.$bvToast.toast('Testing an autofill dry-run, using all combos against all songs, please wait... ', { title: 'Testing...', autoHideDelay: '1000' })
       // needed to allow the toast to appear
-      setTimeout(() => {
-        this.callDiagCombosImpl()
-      }, 100)
+      setTimeout(() => { this.callDiagCombosImpl() }, 100)
       // this.$nextTick(() => this.callDiagCombosDelayed())
     },
     callDiagCombosImpl () {
@@ -440,14 +809,13 @@ export default {
         return y + m + d + '-' + h + mi + s
       }
 
-      // eslint-disable-next-line no-unused-vars
       const fitTestFname = 'RM-DASHBOARD-COMBOS-FIT-TEST'
       const usageTestFname = 'RM-DASHBOARD-CBO-USAGE-TEST'
       const timeStart = new Date()
       this.comboTestsByPerm = {}
       this.comboTestsBySong = {}
       const that = this
-      const songList = replace.sync({
+      const songList = riff.sync({
         files: path.join(RMDIR, 'compases_para_canciones', '*.xml'),
         from: /<musicfile.*">([^<]*)<\/musicfile>\s+.*authorAndSongURL.*>(http[^<]*)?(.+)?<\/authorAndSongURL>/gi,
         // to: (...args) => lookin(args), // here the beatsFiles array is populated
@@ -458,7 +826,6 @@ export default {
       let audit = []
       for (let i = 0; i < songList.length; i++) {
         const xmlFilePath = songList[i].file
-        // eslint-disable-next-line no-unused-vars
         const xmlFile = path.basename(xmlFilePath)
         that.comboTestsBySong[xmlFile] = {}
         let xmlData
@@ -473,11 +840,9 @@ export default {
         const currentBeatIndex = 2 // give the dancers a few seconds, like IRL
         const minBaseName = xmlFile.substring(0, xmlFile.lastIndexOf('.xml'))
         that.autoFiller = new AutoFiller([], this.editedMoves, this.editedCombos, beats, currentBeatIndex, minBaseName)
-        // eslint-disable-next-line no-unused-vars
-        audit.push('sn~ ' + xmlFile) // 72,20:   /* eslint-enable no-undef */
+        audit.push('sn~ ' + xmlFile)
         ;[, audit] = that.autoFiller.autoFill(audit)
       }
-      // eslint-disable-next-line no-undef
       const comboData = JSON.stringify(audit, null, 2)
       const comboJSON = path.join(DLDIR, '/' + fitTestFname + '-' + getFormattedTime() + '.json')
       fs.writeFileSync(comboJSON, comboData, err => {
@@ -495,7 +860,7 @@ export default {
           noFitList.push('... 10 listed')
         }
       }
-      const results = replace.sync({
+      const results = riff.sync({
         files: comboJSON,
         from: /(xx~.*)"/gi,
         to: (...args) => compileNoFits(args),
@@ -546,7 +911,7 @@ export default {
         }
       }
       // from: /^ {2}"(sn~|cn~|cx~) (.*)\[.*]",$/g,
-      replace.sync({ // don't need results
+      riff.sync({ // don't need results
         files: comboJSON,
         from: /^ {2}"(sn~|cn~|cx~) (.*) (\[.*\])",$/gmi,
         to: (...args) => tabulate(args[1], args[2], args[5]),
@@ -570,128 +935,20 @@ export default {
         this.$bvToast.toast(e.message, { title: 'Error' })
       }
     },
-    createAudiospriteAndSonglist () {
-      // eslint-disable-next-line no-unused-vars
-      const dictSongIds = {}
-      const dictSeqTags = {}
-      const dictShortBeatsWarning = {}
-      const dictPastablePlaylists = {}
-
-      const that = this // Vue can lose the this pointer
-      this.bCreatingRmData = true // show busy
-
-      // 1. get the tags from the SEQUENCE files, store in dict by song NAME
-      replace.sync({
-        files: path.join(RMDIR, '*', 'secuencias_para_canciones', '*.seq'),
-        from: /^.*<author.*tags="(.*)".*<\/author>$/gm,
-        to: (...args) => {
-          try {
-            const pathBits = args[4].split('/')
-            const scheme = pathBits[5]
-            const file = pathBits[7].replace('.seq', '')
-            if (!Object.keys(dictSeqTags).includes(file)) dictSeqTags[file] = {}
-            dictSeqTags[file][scheme] = args[1] || '_noTags'
-          } catch (err) {
-            console.log('RIF ERROR: ' + err.message)
-          }
-        },
-        countMatches: true,
-        dry: true
-      })
-
-      // 2. get the song ID and song name from the BEATS files
-      replace.sync({
-        files: path.join(RMDIR, 'compases_para_canciones', '**', '*.xml'),
-        from: /^.*<musicfile.*bpm="(\d*)">(.*).m..<\/musicfile>\n.*spotifySongId="([a-zA-Z0-9]{22})".*\n.*<beats>((\n|.)*?)<\/beats>.*$/gm,
-        to: (...args) => {
-          const bpm = args[1] || 0
-          const currentSong = args[2] || ''
-          const spotId = args[3]
-          if (dictSongIds[spotId]) that.$bvModal.msgBoxOk('WARNING: Duplicate Spotify songID: ' + spotId, { title: 'Duplicate Spotify ID error' })
-          dictSongIds[spotId] = { file: currentSong, bpm: bpm, schemeTags: {} } // fill the tags next!
-          // eslint-disable-next-line no-unused-vars
-          const currentSongBeats = (args[4].match(/beat/g) || []).length
-          if (currentSongBeats < 30) {
-            dictShortBeatsWarning[currentSong] = currentSongBeats
-          }
-        },
-        countMatches: true,
-        dry: true
-      })
-
-      // 3. combine 2 with a lookup from 1, so we have dict KEY = Spotify ID, VALUE: {songName: xxx, schemes { scheme1: tags, scheme2: tags, .... }}
-      for (const [spotId, value] of Object.entries(dictSongIds)) {
-        if (Object.keys(dictSeqTags).includes(value.file)) {
-          dictSongIds[spotId].schemeTags = dictSeqTags[value.file]
-          if (value.schemeTags) {
-            for (const [scheme, tags] of Object.entries(value.schemeTags)) {
-              if (!dictPastablePlaylists[scheme]) dictPastablePlaylists[scheme] = []
-              dictPastablePlaylists[scheme].push({ spotId: spotId, name: value.file, tags: tags, bpm: value.bpm })
-            }
-          }
-        }
-      }
-
-      if (Object.entries(dictShortBeatsWarning).length) {
-        this.$bvModal.msgBoxOk('WARNING: some beats files are very short: \n' + JSON.stringify(dictShortBeatsWarning, null, 2), { title: 'Issue found generating rm-spot-songs.json' })
-      }
-      fs.ensureDirSync(RMSPOT)
-      const spotFile = path.join(RMSPOT, 'rm-spot-songs.json')
-      // a list of IDs each prefixed "spotify:track:" can be pasted in the UI into a playlist
-      fs.writeFileSync(spotFile, JSON.stringify(dictSongIds, null, 2), 'utf8')
-      this.$bvToast.toast('Done, used in RM BUILD: rm-spot-songs.json', { title: 'RM system file, scheme: ALL' })
-
-      const pasteListPrep = _sortBy(Object.entries(dictSongIds), presetSong => parseInt(presetSong[1].bpm))
-      const pasteList = pasteListPrep.map(k => 'spotify:track:' + k[0]).join('\n')
-      const pasteFile = path.join(RMSPOT, 'pastable-autofill-playlist-allsongs.txt')
-      fs.writeFileSync(pasteFile, pasteList, 'utf8')
-      this.$bvToast.toast('Done, paste into Spotify playlist: pastable-autofill-playlist-allsongs.txt', { title: 'New Spotify playlist, scheme: ALL' })
-
-      // the Spotify ordered pastable list of songs and tags for each scheme
-      for (const scheme of Object.keys(dictPastablePlaylists)) {
-        const presetListPrep = _sortBy(dictPastablePlaylists[scheme], ['tags', 'bpm']) // slower songs first
-        const presetList = presetListPrep.map(p => 'spotify:track:' + p.spotId).join('\n')
-        const spotFile = path.join(RMSPOT, 'pastable-presets-playlist-' + scheme + '.txt')
-        fs.writeFileSync(spotFile, presetList, 'utf8')
-        this.$bvToast.toast('Done, paste into Spotify playlist: pastable-presets-playlist-' + scheme + '.txt', { title: 'New Spotify playlist, scheme' + scheme })
-      }
-
-      // now the AUDIOSPRITE
-      const scheme = this.RMEFolder
-      fs.ensureDir(path.join(RMSPOT, scheme))
-      console.log(`making audiosprite for scheme: ${scheme}`)
-      const callsGlob = [RMDIR.replace(/\\/g, '/') + '/' + scheme + '/vueltas/*.mp3'] // AudrioSprite requires unix path separator
-      // const options = { output: 'result', export: 'mp3', format: 'howler2', silence: 1, store: true, rawparts: 'mp3', path: 'C:/Users/user/Documents/RuedaMaticEditor/scheme_rueda_normal_basica/vueltas' }
-      const options = {
-        output: RMSPOT + '/' + scheme + '/' + scheme,
-        export: 'mp3',
-        format: 'howler2',
-        silence: 1,
-        store: true
-      }
-
-      this.$bvToast.toast('Scheme audiosprite for Spotify will be processed... Please Wait!', { title: scheme })
-      createAudioSprite(callsGlob, options)
-        .then((result) => {
-          // doneSchemes += 1
-          this.$bvToast.toast(`Done, used in RM build: audiosprite MP3 file: ${scheme}.json`, { title: 'Audiosprite MP3' })
-          console.log(result)
-          console.log(`Writing audiosprite json file: ${scheme}.json`)
-          fs.writeFileSync(RMSPOT + '/' + scheme + '/' + scheme + '.json', JSON.stringify(result.sprite))
-          this.$bvToast.toast(`Done, used in RM build: audiosprite json index file: ${scheme}.json`, { title: 'Audiosprite index' })
-          this.bCreatingRmData = false
-        })
-        .catch((err) => {
-          console.log(err)
-          this.bCreatingRmData = false
-        })
-      // }
-      // this.$bvModal.show('diagModal')
-      // })
-      // fs.ensureDir(RMSPOT)
-      // // note: aws-pkg-deploy is a program that also creates these audiosprite files.  That program writes all found schemes in the rm-spotify Development tree, rm-assets folder.
-      // // This program writes identical files but puts them in it's own folder as a transfer directory.  And it only writes the currently loaded scheme.
-      // // this module expects forward slash on Windows
+    isAudiospriteStale (sch, results) {
+      // staleRMCallsFlag
+      //     Stats {
+      // size: 527,
+      // mtimeMs: 1318289051000.1
+      const spritePath = path.join(RMDIR, 'rm-spot', sch, sch + '.mp3')
+      if (!fs.pathExistsSync(spritePath)) return true
+      const tsSprite = fs.statSync(spritePath).mtimeMs
+      // scheme: this.RMEFolder .replace(/\\/g, '/')
+      const callsPath = path.join(RMDIR, sch, 'vueltas')
+      const callFiles = fs.readdirSync(callsPath)
+      results.schemes[sch].audioSprite.count = callFiles.length
+      const tsCallLatest = Math.max(...callFiles.map(c => fs.statSync(callsPath + '/' + c).mtimeMs))
+      return tsCallLatest > tsSprite // if calls are newer than sprite: TRUE
     },
     showDeleteDlg (scheme) {
       this.$bvModal.msgBoxConfirm(`Delete (to recycle bin) scheme "${scheme.name.substring(7)}" - are you sure?`)
@@ -742,7 +999,7 @@ export default {
           // rename the scheme file
           fs.moveSync(path.join(pathSch, 'scheme_rueda_template.scheme'), path.join(pathSch, dirSch + '.scheme'))
           // update the description
-          // RIF = replace-in-file package
+          // RIFF = replace-in-file package
           RIFtarget = new RegExp('"description":.*,') // $ regex symbol does not match CRLF
           RIFpayload = '"description": "' + this.schemeDlgDescription.trim() + '",'
           RIFschemeOptions = {
@@ -750,7 +1007,7 @@ export default {
             from: RIFtarget,
             to: RIFpayload
           }
-          RIFresults = replace.sync(RIFschemeOptions)
+          RIFresults = riff.sync(RIFschemeOptions)
           //     console.log(RIFresults.filter(item => item.hasChanged).map(item => path.basename(item.file)))
           // update the provider (author)
           RIFtarget = new RegExp('"provider":.*,') // $ regex symbol does not match CRLF
@@ -760,7 +1017,7 @@ export default {
             from: RIFtarget,
             to: RIFpayload
           }
-          RIFresults = replace.sync(RIFschemeOptions)
+          RIFresults = riff.sync(RIFschemeOptions)
           console.log(RIFresults.filter(item => item.hasChanged).map(item => path.basename(item.file)))
           // in vueltas/moves.xml, replace attributes in:
           // 1:  <author date="2022-09-09T15:12:46.616Z" authorId="rc">Ruedamatic Editor</author>
@@ -771,7 +1028,7 @@ export default {
             from: RIFtarget,
             to: RIFpayload
           }
-          RIFresults = replace.sync(RIFschemeOptions)
+          RIFresults = riff.sync(RIFschemeOptions)
           // 2:  <scheme schemeName="scheme_rueda_template" schemeProvider="rc" schemeDate="2022-09-09T15:12:46.616Z">
           RIFtarget = new RegExp('<scheme.*</scheme>') // $ regex symbol does not match CRLF
           RIFpayload = `<scheme schemeName="${dirSch}" schemeProvider="${this.authorId}" schemeDate="${dateTimeISO}">Ruedamatic Editor</scheme>`
@@ -780,7 +1037,7 @@ export default {
             from: RIFtarget,
             to: RIFpayload
           }
-          RIFresults = replace.sync(RIFschemeOptions)
+          RIFresults = riff.sync(RIFschemeOptions)
           // update the data store
           this.$store.commit('UPDATE_INSTALLED_SCHEMES_FLAG', true)
         } catch (err) { // unexpected error
@@ -800,7 +1057,7 @@ export default {
             // rename the scheme file in it's new folder.  NOTE: contents of scheme file fixed below!
             fs.moveSync(path.join(pathSch, 'scheme_' + this.oldSchemeName + '.scheme'), path.join(pathSch, dirSch + '.scheme'))
             // moves.xml, contains a ref to scheme
-            // RIF = replace-in-file package
+            // RIFF = replace-in-file package
             RIFtarget = new RegExp('<scheme.*</scheme>') // $ regex symbol does not match CRLF
             RIFpayload = `<scheme schemeName="${dirSch}" schemeProvider="${this.authorId}" schemeDate="${dateTimeISO}">Ruedamatic Editor</scheme>`
             RIFschemeOptions = {
@@ -808,7 +1065,7 @@ export default {
               from: RIFtarget,
               to: RIFpayload
             }
-            RIFresults = replace.sync(RIFschemeOptions)
+            RIFresults = riff.sync(RIFschemeOptions)
             // each .seq contains a ref to the scheme that it belongs to
             RIFtarget = new RegExp('<scheme.*</scheme>') // $ regex symbol does not match CRLF
             RIFpayload = `<scheme provider="${this.authorId}" date="${dateTimeISO}">${dirSch}</scheme>`
@@ -817,7 +1074,7 @@ export default {
               from: RIFtarget,
               to: RIFpayload
             }
-            RIFresults = replace.sync(RIFschemeOptions)
+            RIFresults = riff.sync(RIFschemeOptions)
           }
           // NAME: did the name change OR description change?  => CONTENTS of the .scheme file
           if (this.oldSchemeName !== this.schemeDlgName4GUI || this.oldSchemeDescription !== this.schemeDlgDescription) {
@@ -829,7 +1086,7 @@ export default {
               from: RIFtarget,
               to: RIFpayload
             }
-            RIFresults = replace.sync(RIFschemeOptions)
+            RIFresults = riff.sync(RIFschemeOptions)
           }
           if (this.oldSchemeDescription !== this.schemeDlgDescription) {
             // scheme file, scheme description update
@@ -840,7 +1097,7 @@ export default {
               from: RIFtarget,
               to: RIFpayload
             }
-            RIFresults = replace.sync(RIFschemeOptions)
+            RIFresults = riff.sync(RIFschemeOptions)
           }
           this.$store.commit('UPDATE_INSTALLED_SCHEMES_FLAG', true)
         } catch (err) {
@@ -863,8 +1120,7 @@ export default {
       // inside the loop: read the .scheme [description], filter/count the moves/seq by scheme
 
       // count all the moves, for all schemes
-      // eslint-disable-next-line no-unused-vars
-      const resMoves = replace.sync({
+      const resMoves = riff.sync({
         files: path.join(RMDIR, '**', 'moves.xml'),
         from: /<move.*>\n.*\n.*<\/move>\n/g,
         to: 'dryrun',
@@ -873,8 +1129,7 @@ export default {
       })
 
       // count all the combos, for all schemes
-      // eslint-disable-next-line no-unused-vars
-      const resCombos = replace.sync({
+      const resCombos = riff.sync({
         files: path.join(RMDIR, '**', 'moves.xml'),
         from: /.*<combo .*>\n(?:.+\n)*?.*<\/combo>.*/g,
         to: 'dryrun',
@@ -883,8 +1138,7 @@ export default {
       })
 
       // count all the sequences, for all schemes
-      // eslint-disable-next-line no-unused-vars
-      const resSeq = replace.sync({
+      const resSeq = riff.sync({
         files: path.join(RMDIR, '**', '*.seq'),
         from: /<move *name=".{3,}"\/>/gm,
         to: 'dryrun',
@@ -895,12 +1149,13 @@ export default {
       const retData = {} // return object
       // schemeFields: ['name', 'author', 'description', 'move_count', 'combo_count', 'seq_count'],
       resMoves.forEach((item, index) => {
-        const scheme = item.file.split('/')[5]
+        const aryPath = item.file.split('/')
+        while (aryPath.shift() !== 'Documents') {} // handles OneDrive as a level of the path
+        const scheme = aryPath[1]
         if (scheme.substring(0, 7) === 'scheme_') {
           retData[scheme] = { name: scheme }
           retData[scheme].move_count = item.numMatches
           const test = path.join(RMDIR, scheme, scheme + '.scheme')
-          // eslint-disable-next-line no-unused-vars
           try {
             const obj = JSON.parse(fs.readFileSync(test, 'utf8'))
             retData[scheme].author = obj.providedBy.provider
@@ -915,7 +1170,9 @@ export default {
         }
       })
       resCombos.forEach((item, index) => {
-        const scheme = item.file.split('/')[5]
+        const aryPath = item.file.split('/')
+        while (aryPath.shift() !== 'Documents') {} // handles OneDrive as a level of the path
+        const scheme = aryPath[1]
         if (scheme.substring(0, 7) === 'scheme_') {
           if (retData[scheme]) {
             retData[scheme].combo_count = item.numMatches
@@ -925,7 +1182,9 @@ export default {
         }
       })
       resSeq.forEach((item, index) => {
-        const scheme = item.file.split('/')[5]
+        const aryPath = item.file.split('/')
+        while (aryPath.shift() !== 'Documents') {} // handles OneDrive as a level of the path
+        const scheme = aryPath[1]
         if (scheme.substring(0, 7) === 'scheme_') {
           if (retData[scheme]) {
             if (retData[scheme].seq_count) retData[scheme].seq_count += 1
@@ -966,6 +1225,7 @@ export default {
       }
       console.log(command)
       exec(command, function (stdout) {
+        // this is callback from exec...
         // Do something if you really need to
       })
     },
@@ -987,35 +1247,35 @@ export default {
 </script>
 
 <style scoped>
-    .title {
-        color: #038309;
-        font-size: 18px;
-        font-weight: initial;
-        letter-spacing: .25px;
-        margin-top: 10px;
-    }
+.title {
+  color: #038309;
+  font-size: 18px;
+  font-weight: initial;
+  letter-spacing: .25px;
+  margin-top: 10px;
+}
 
-    .items {
-        margin-top: 8px;
-    }
+.items {
+  margin-top: 8px;
+}
 
-    .item {
-        display: flex;
-        margin-bottom: 6px;
-    }
+.item {
+  display: flex;
+  margin-bottom: 6px;
+}
 
-    .item .name {
-        color: #6a6a6a;
-        margin-right: 6px;
-    }
+.item .name {
+  color: #6a6a6a;
+  margin-right: 6px;
+}
 
-    .item .value {
-        color: #35495e;
-        font-weight: bold;
-    }
-      /* .fa-icon {
+.item .value {
+  color: #35495e;
+  font-weight: bold;
+}
+
+/* .fa-icon {
           background-color: white;
           padding: 1.5px;
       } */
-
 </style>

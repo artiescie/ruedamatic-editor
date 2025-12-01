@@ -130,8 +130,10 @@ export default class AudioSpriteCreator {
   }
 
   checkFFMpeg () {
+    // was 'ffmpeg', changed to 'ffmpegLocal' for our renamed use!
     return new Promise((resolve) => {
-      this.spawn('ffmpeg', ['-version']).on('exit', (code) => {
+      process.chdir(__static)
+      this.spawn('ffmpegLocal', ['-version'], { shell: true }).on('exit', (code) => {
         if (code) this.processError('ffmpeg was not found on your path')
         resolve()
       })
@@ -217,7 +219,7 @@ export default class AudioSpriteCreator {
 
       let code = -1
       let signal
-      const ffmpeg = this.spawn('ffmpeg', ['-i', path.resolve(src), ...this.wavArgs, 'pipe:'])
+      const ffmpeg = this.spawn('ffmpegLocal', ['-i', path.resolve(src), ...this.wavArgs, 'pipe:'])
       const writeStream = fs.createWriteStream(dest, { flags: 'w' })
       ffmpeg.stdout.pipe(writeStream)
       Promise.all([
@@ -288,7 +290,7 @@ export default class AudioSpriteCreator {
     const outfile = `${dest}.${ext}`
 
     return new Promise((resolve, reject) => {
-      this.spawn('ffmpeg', ['-y', ...this.wavArgs, '-i', src, ...opt, outfile])
+      this.spawn('ffmpegLocal', ['-y', ...this.wavArgs, '-i', src, ...opt, outfile])
         .on('exit', (code, signal) => {
           if (code) {
             this.processError({

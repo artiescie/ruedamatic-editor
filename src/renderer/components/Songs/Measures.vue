@@ -97,8 +97,8 @@ A Cambio gear is used to help automate meter changes - for example, a clave chan
             </span>
         </b-col>
         <b-col v-show="mode === 'callsMode'">
-          <b-button size="sm" variant="warning" class="mx-0" @click="seqTagsWorking=seqTags;showSeqTags=true" title="Change tags: distinguish beginner, adv, emphasis...
-so you can filter, select in the loader.">
+          <b-button size="sm" variant="warning" class="mx-0" @click="seqTagsWorking=seqTags;showSeqTags=true" title="CLICK HERE to change tags: e.g. 'Beginner' or 'April-show'...
+so you can filter and chose in the loader.">
             Tags
           </b-button>
           <span>

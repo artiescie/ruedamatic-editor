@@ -8,7 +8,7 @@ import fs from 'fs'
 import path from 'path'
 import wget from 'wget-improved'
 import Vue from 'vue'
-import replace from 'replace-in-file'
+import riff from 'replace-in-file'
 
 // import _cloneDeep from 'lodash/cloneDeep'
 // import opn from 'opn'
@@ -31,8 +31,8 @@ const state = {
   editedSequence: [], // edited object, maybe save this
   seqFilesModifiedFromMoves: [],
   installedSchemes: [],
-  availableSchemes: {},
-  basicSchemes: {},
+  availableSchemes: {}, // downloadable list
+  basicSchemes: {}, // downloadable list
   bUpdateInstalledSchemes: 0,
   schemeName: '',
   schemeProvider: '',
@@ -294,9 +294,11 @@ const mutations = {
     discDataHelper.persistXMLData(path.join(CALLFOLDER, 'moves.xml'), [state.editedMoves, state.editedCombos], asWhat) // moves
   },
   BUFFER_AVAILABLE_SCHEMES (state, payload) {
+    // here if we've chosen to see available dl's from the RME server
     state.availableSchemes = payload
   },
   BUFFER_BASIC_SCHEMES (state, payload) {
+    // here if we've chosen to see available dl's from the RME server
     state.basicSchemes = payload
   },
   BUFFER_INSTALLED_SCHEMES (state, payload) {
@@ -415,9 +417,9 @@ const getters = {
           }
         }
       },
-      dry: true
+      dry: true // no actual replacement
     }
-    replace.sync(seqFilesReplaceOptionsXML) // READONLY just a dry run!
+    riff.sync(seqFilesReplaceOptionsXML)
   },
   getCallsNotUsedDisplay: (state, getters) => {
     const selEntries = getters.getCallsUsage.filter(m => m.moves.length === 0)
@@ -473,16 +475,15 @@ const actions = {
     })
     // return [Object.entries(dictMv).map(m => m[1]), sMsgSeqs, sMsgCombos]
   },
-  getDataList (context, which) {
+  downloadAvailables (context, which) {
     // these lists are PREPARED and DEPLOYED by "aws_pkg_deploy" utility
+    // which = available or basic
     // Aug 2023: only "available" is used right now
     // Out of the available packages, only sample music is installed via "OK" to user prompt, by default
     context.commit('SET_BUSY_NOTICE')
-    // which = available or basic
     if (!['basic', 'available'].includes(which)) {
-      throw new Error('getDataList must be called with one of "available" or "basic"')
+      throw new Error('downloadAvailables must be called with one of "available" or "basic"')
     }
-    // let that = this
     const fname = 'rme_' + which + '.json'
     const download = wget.download(encodeURI('https://s3.us-east-2.amazonaws.com/come2think.com/RuedaMatic/schemesAndBeats/' + fname), TEMPDIR + '/' + fname, {})
     download.on('error', err => {

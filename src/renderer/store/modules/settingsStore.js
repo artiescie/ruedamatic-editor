@@ -3,9 +3,9 @@ import _cloneDeep from 'lodash/cloneDeep'
 import _pick from 'lodash/pick'
 
 import electron from 'electron'
-import path from 'path'
-const HOMEDIR = electron.remote.app.getPath('home')
-const MUSICFOLDER = path.join(HOMEDIR, 'Music')
+// import path from 'path'
+// const HOMEDIR = electron.remote.app.getPath('home')
+const MUSICFOLDER = electron.remote.app.getPath('music')
 
 const discDataHelper = new DiscDataHelper()
 
@@ -28,7 +28,7 @@ const initialSettings = {
 }
 const state = {
   settings: _cloneDeep(initialSettings),
-  version: '8.0.0' // this is the RME App version, must agree with package.json (manual check)
+  version: '9.0.0' // this is the RME App version, must agree with package.json (manual check)
 }
 
 // update settings, get a setting

@@ -21,7 +21,7 @@ npm run build
 
 ### Some specific dependencies
 #### In folder static:
- - ffmpeg,
+ - ffmpegLocal.exe,
  - recycle-bin.exe.
  See the file "static/what's here.txt"
 

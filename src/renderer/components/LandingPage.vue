@@ -27,17 +27,17 @@
         <b-card class="my-0" bg-variant="dark" text-variant="white">
           <p class="card-text">
             <ul>
-              <li><p class="card-text">Use or make Schemes: complete set of moves for a specific style</p></li>
-              Possible schemes a teacher could make: Beginner, Advanced, Salsa Suelta, <br>Mixta, Torno, Wheelchair Rueda, etc., etc...
-              <li><p class="card-text">Beats files: record the rhythm - done once for all schemes</p></li>
+              <li><p class="card-text">Create Schemes: moves or combos for a style e.g. Rueda de Casino</p></li>
+              <li><p class="card-text">Create Beats files: record the rhythm for a song</p></li>
             </ul>
           </p>
         </b-card>
-        <div title="Click navbar 'User' to change!" class="title">As a Caller:<em>Choose the moves to call</em></div>
+        <div title="Click navbar 'User' to change!" class="title">As a Caller:<em>Load songs, apply moves or combos</em></div>
         <b-card class="my-0" bg-variant="dark" text-variant="white">
           <ul>
-            <li><p class="card-text">KEEP REVIEWING as you add rueda calls</p></li>
             <li><p class="card-text">MATCH calls to song dynamics (gears and verses)</p></li>
+            <li><p class="card-text">APPLY combos manually or... </p></li>
+            <li><p class="card-text">.. or USE AI to apply combos, as you play songs</p></li>
           </ul>
         </b-card>
         <b-container>

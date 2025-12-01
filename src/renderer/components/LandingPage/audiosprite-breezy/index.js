@@ -10,5 +10,6 @@ export default function createAudioSprite (paths = [], options = {}, callback = 
       .prepare()
       .then(() => audiosprite.checkFFMpeg())
       .then(() => audiosprite.create())
+      .catch((e) => { throw e.message })
   })
 }

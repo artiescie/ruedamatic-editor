@@ -132,11 +132,11 @@ import { exec } from 'child_process'
 import path from 'path'
 import AutoFiller from './Songs/AutoFiller'
 
-const HOMEDIR = electron.remote.app.getPath('home')
+// const HOMEDIR = electron.remote.app.getPath('home')
 const DOCDIR = electron.remote.app.getPath('documents')
 const RMDIR = DOCDIR + '/RuedaMaticEditor'
 
-const MUSICFOLDER = path.join(HOMEDIR, 'Music')
+const MUSICFOLDER = electron.remote.app.getPath('music')
 let BEATSFOLDER = '' // set in mounted
 let CALLFOLDER = '' // set in mounted
 let WAVESURFER
@@ -210,7 +210,7 @@ export default {
     },
     MP3FileNameBaseName () {
       const ary = this.MP3FileName.split('\\')
-      return ary[ary.length - 1]
+      return ary.pop()
     },
     spotifySongId () {
       return this.$store.state.beatsAndSequenceStore.spotifySongId

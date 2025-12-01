@@ -33,7 +33,6 @@ i18n trial case for translations, works ok but not followed up!  Not a priority.
 
       <div v-if="!comboFlowShown" class="justify-content-center row">
         <!--filters and pagination-->
-
         <b-input-group label-cols="2" label="Search" class="col-6 my-0">
           <b-form-input :class="{'bg-warning': filter.length}" v-model="filter" ref="filtMovesCombos" placeholder="Search" />
           <b-input-group-append>
@@ -227,7 +226,7 @@ Export as MP3, make sure it's trimmed of blank sound, and saved in the vueltas f
             </b-col>
           </b-row>
           <hr>
-          <b-row class="bg-warning" title="If this move is to be used in RM-Spot, web app, for automatic generation of rueda calls">
+          <b-row class="bg-warning" title="Used in RM-Spot, the web app, for AUTOCALL - automatic generation of rueda calls">
             <b-col cols="4" class="mt-1 ml-sm-2 mb-sm-0">
               <em>For automatic calling only:</em>
             </b-col>
@@ -483,6 +482,16 @@ So an upshift step should be for example, a high energy move." @click="showAllow
           <b-form-input ref="nodeEditExtraTimeMax" v-model="nodeEditExtraTimeMaxTemp" type="number" />
         </b-form-fieldset>
       </b-modal>
+      <!-- modal for showing results of compiling rm-spot data for beats, sequences, moves, combos -->
+      <b-modal v-model="showRmsGeneration" title="Sequence Files Problem!" okOnly>
+        <p class="my-4">Downstream files use this move -- remove and fix sequence. </p>
+        <p>You will need to remove this move from the following sequence files, before changing the length.  Then do any fix-up later!</p>
+        <ul>
+          <li v-for="(item, index) in seqFilesAffected" :key="index">
+            {{item}}
+          </li>
+        </ul>
+      </b-modal>
     </b-container>
   </div>
 </template>
@@ -499,7 +508,7 @@ import _cloneDeep from 'lodash/cloneDeep'
 import opn from 'opn'
 import electron from 'electron'
 import Differ from 'deep-diff'
-import replace from 'replace-in-file'
+import riff from 'replace-in-file'
 import RMMermaid from './Moves/RMMermaid'
 // eslint-disable-next-line no-unused-vars
 import { toRegex, toString } from 'diacritic-regex'
@@ -522,6 +531,7 @@ export default {
   components: { RMMermaid },
   data () {
     return {
+      showRmsGeneration: false, // results of generating rm-spot data on the Dashboard page (System Information)
       tempReadonlyList: [], // might need to reset some RO SEQ files writable, then back to RO
       gateClosed: null, // debounce flag: see onNodeReplaceOrAdd
       bLoading: false,
@@ -562,7 +572,7 @@ export default {
         { key: 'level', label: 'Lvl', sortable: true },
         { key: 'delaycount', label: 'Delay' },
         { key: 'lengthextendable', label: 'Ext', sortable: true },
-        { key: 'equivalency', label: 'Eq', headerTitle: 'Interchangable moves are linked by the same Equivalence value (used by combos, automated calling)', sortable: true },
+        { key: 'equivalency', label: 'Eq', headerTitle: 'NOT IMPLEMENTED:Interchangable moves are linked by the same Equivalence value (used by combos, automated calling)', sortable: true },
         { key: 'setupbars', label: 'Setup' },
         { key: 'comment', label: 'Comment' }],
       currentComboHdr: {},
@@ -602,12 +612,11 @@ export default {
     }
   },
   computed: {
-    totalRowsMoves: {
-      get: () => this.visibleMoves ? this.visibleMoves.length : 0,
-      set: (val) => val // placebo for Vue error "has no setter"
-    },
     totalRowsCombos () {
       return this.comboList ? this.comboList.length : 0
+    },
+    totalRowsMoves () {
+      return this.visibleMoves ? this.visibleMoves.length : 0
     },
     graphReady () {
       // if (document.getElementById('mermaid-graph')) {
@@ -776,7 +785,6 @@ export default {
     },
     CALLFOLDER () { return path.join(RMDIR, this.RMEFolder, 'vueltas') },
     SEQSPEC () { return path.join(RMDIR, this.RMEFolder, 'secuencias_para_canciones', '*.seq') },
-    JSEQSPEC () { return path.join(RMDIR, 'rm-spot', this.RMEFolder, 'secuencias_para_canciones', '*.jseq') },
     // fields for the moves b-table
     fields: {
       get () {
@@ -948,7 +956,7 @@ export default {
       this.comboTestsByPerm = {}
       this.comboTestsBySong = {}
       const that = this
-      const songList = replace.sync({
+      const songList = riff.sync({
         files: path.join(RMDIR, 'compases_para_canciones', '*.xml'),
         from: /<musicfile.*">([^<]*)<\/musicfile>\s+.*authorAndSongURL.*>(http[^<]*)?(.+)?<\/authorAndSongURL>/gi,
         to: 'dummy',
@@ -1804,7 +1812,7 @@ export default {
             from: new RegExp(this.escapeRegExp(this.seqFilesOldMoveName), 'g'),
             to: (...args) => checkForRO(args)
           }
-          const results = replace.sync(Object.assign(_cloneDeep(this.seqFilesReplaceOptionsXML), { dry: true })) // READONLY just a dry run!
+          const results = riff.sync(Object.assign(_cloneDeep(this.seqFilesReplaceOptionsXML), { dry: true })) // READONLY just a dry run!
           this.seqFilesAffected = results.filter(item => item.hasChanged).map(item => path.basename(item.file))
           if (this.seqFilesAffected.length) {
             this.$bvModal.show('dlgModifyFiles')
@@ -1822,7 +1830,7 @@ export default {
             from: new RegExp('name="' + this.escapeRegExp(this.currentItemBeforeEdit.$.name) + '"', 'g'),
             to: 'xxx' // DRY RUN - we just need a list of files with move
           }
-          const results2 = replace.sync(Object.assign(_cloneDeep(this.seqFilesReplaceOptionsXML), { dry: true })) // READONLY just a dry run!
+          const results2 = riff.sync(Object.assign(_cloneDeep(this.seqFilesReplaceOptionsXML), { dry: true })) // READONLY just a dry run!
           this.seqFilesAffected = results2.filter(item => item.hasChanged).map(item => path.basename(item.file))
           if (this.seqFilesAffected.length) {
             this.showLengthWarning = true // **** <<< HERE IS THE RESULT, later
@@ -1883,15 +1891,12 @@ export default {
       this.seqFilesReplaceOptionsXML.to = 'name="' + this.currentItem.$.name.trim() + '"'
 
       try {
-        replace.sync(this.seqFilesReplaceOptionsXML)
+        riff.sync(this.seqFilesReplaceOptionsXML)
       } catch (error) {
         this.$bvModal.msgBoxOk('SEQ File(s) set READ-ONLY, protected from changes here!  You must change the file permissions to do this.')
         this.$bvModal.hide('filesWarning')
         return
       }
-      // as well as the RME XML files with .seq extension, also affected are
-      //  the RM-spot json files with .jseq extension.  Here we populate that object:
-
       // revert previously RO files to be RO once more
       for (let j = 0; j < this.tempReadonlyList.length; j++) {
         // revert the files that were readonly to RO again
@@ -1902,17 +1907,6 @@ export default {
         title: 'Moves were changed in SEQ files',
         autoHideDelay: 4000
       })
-
-      const jseqFilesOldMoveName = '"name": "' + this.currentItemBeforeEdit.$.name + '"'
-      const jseqFilesNewMoveName = '"name": "' + this.currentItem.$.name.trim() + '"' // trim also done later while saving!
-      const jseqFilesReplaceOptionsJSON = {
-        files: this.JSEQSPEC, // computed so must be at global scope
-        from: new RegExp(this.escapeRegExp(jseqFilesOldMoveName), 'g'),
-        to: jseqFilesNewMoveName
-      }
-      const results = replace.sync(Object.assign(_cloneDeep(jseqFilesReplaceOptionsJSON)))
-      const jseqFilesAffected = results.filter(item => item.hasChanged).map(item => path.basename(item.file))
-      console.log('RME seq files changed/RM-spot jseq files changed: ' + this.seqFilesAffected.length + '/' + jseqFilesAffected.length)
 
       // fix the Combos in memory, the ones saved in moves.xml
       try {
@@ -2058,9 +2052,9 @@ export default {
         files: this.SEQSPEC,
         from: new RegExp(this.escapeRegExp(this.seqFilesOldMoveName), 'g'),
         to: this.seqFilesNewMoveName,
-        dry: true
+        dry: true // no actual replacement
       }
-      const results = replace.sync(this.seqFilesReplaceOptionsXML) // READONLY just a dry run!
+      const results = riff.sync(this.seqFilesReplaceOptionsXML)
       this.seqFilesAffected = results.filter(item => item.hasChanged).map(item => path.basename(item.file))
       if (this.seqFilesAffected.length) {
         this.$bvModal.show('filesInfoNoDelete')

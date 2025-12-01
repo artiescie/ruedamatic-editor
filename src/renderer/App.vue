@@ -8,7 +8,7 @@ done: shorten the scheme name, exclude the "scheme_" prefix
 done: BUG: play song, change scheme. wave is empty, grid is empty - But song and calls will play weirdly
 
 -- COMBOS features ---
-TODO: 1x at start: backup data files!
+TODOx: 1x at start: backup data files!
 TODO: Loading a scheme: ensure "Continue" move exists( & 4 countdown? ).  It's used as start of new Combo.
 TODO: what is WITH the quotes in the combos???
 TODO: include filter for Moves, and one for Combos - checkbox for each item

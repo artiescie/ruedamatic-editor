@@ -40,7 +40,7 @@
           </div>
         </b-form-radio-group>
       </b-form-group>
-      <b-button v-if="!listIsShown" href="#" variant="success" @click="getDataList('available')" title="From come2think.com server: show a list of data available for update.">List</b-button>
+      <b-button v-if="!listIsShown" href="#" variant="success" @click="downloadAvailables('available')" title="From come2think.com server: show a list of data available for update.">List</b-button>
       <b-button v-else href="#" variant="warning" @click="downloadSelectedDlg" title="Schemes are installed to Documents/RuedaMaticEditor.
 Music in the system Music folder.
 Beats files go to Documents/RuedaMaticEditor/compases_para_canciones... overwriting on a file-by-file basis."
@@ -55,7 +55,7 @@ import DiscDataHelper from '../store/shared/DiscDataHelper.js'
 import fs from 'fs-extra'
 import path from 'path'
 import electron from 'electron'
-import replace from 'replace-in-file'
+import riff from 'replace-in-file'
 
 const DOCDIR = electron.remote.app.getPath('documents')
 const RMDIR = DOCDIR + '/RuedaMaticEditor'
@@ -155,7 +155,7 @@ export default {
           this.$bvModal.msgBoxOk('Error in beats file arg3-authorId, or arg6-filename', { title: 'Error getting Beats file authors' })
         }
       }
-      replace.sync({ // don't need results
+      riff.sync({ // don't need results
         files: beatsToOverwrite.map(f => path.join(RMDIR, f)),
         from: /<authorAndSongURL(.* (authorId="(.+){1}">).*)<\/authorAndSongURL>/gi,
         to: (...args) => lookin(args),
@@ -199,8 +199,8 @@ export default {
       this.$store.commit('UNSET_BUSY_NOTICE')
       this.selectedDataFile = ''
     },
-    getDataList (which) {
-      this.$store.dispatch('getDataList', which)
+    downloadAvailables (which) {
+      this.$store.dispatch('downloadAvailables', which)
     },
     getEntryKeyBasename (obj) {
       const key = Object.keys(obj)[0]

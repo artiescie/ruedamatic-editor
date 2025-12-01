@@ -1,7 +1,6 @@
-NOTE 
+NOTE
 
-AutoFiller.js is a hardlinked file with 2 locations:
+AutoFiller.js is a softlinked file in RM-Spot development project, pointing to RME file of the same name
 
-C:\>FSUTIL HARDLINK LIST "C:\Users\user\Development\RM-Spot\src\helpers\AutoFiller.js"
 \Users\user\Development\ruedamatic-editor\src\renderer\components\Songs\AutoFiller.js
 \Users\user\Development\RM-Spot\src\helpers\AutoFiller.js

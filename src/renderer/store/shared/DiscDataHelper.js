@@ -20,7 +20,6 @@ const DOCDIR = electron.remote.app.getPath('documents')
 const TEMPDIR = electron.remote.app.getPath('temp')
 const HOMEDIR = electron.remote.app.getPath('home')
 const RMDIR = DOCDIR + '/RuedaMaticEditor'
-const RMSPOT = path.join(RMDIR, 'rm-spot').replace(/\\/g, '/') // used by AudioSprite, some code requires the unix file separator and in other cases, its still works for Windows
 
 class discDataHelper {
   // /////////////////////////////
@@ -340,6 +339,7 @@ class discDataHelper {
   }
 
   xmlToCombos (xmlData) {
+    // NOTE: Vue mermaid is only used for COMBOS, not MOVES... or for any other storage
     const res = {} // result: object in vue-mermaid form
     // construct object by levels
     // first key: Combo name
@@ -436,7 +436,6 @@ class discDataHelper {
   }
 
   persistXMLData (outFilePath, objData, asWhat) {
-    // NOW ALSO saves json files for spotify client rm-spot
     // first clear the embedded GUI flags (_cellVariants) from the domain data (non-existent CALL file warning, cell is RED)
     let objDataClean = []
     let objDataCleanExtra = [] // sep 2019 combos added to moves file as extra data.
@@ -470,9 +469,9 @@ class discDataHelper {
           } else {
             // Convention for the seq file is that even silences...
             // e.g.while a guapea or tumba frances is continung without calls...
-            // even these a null placeholder in the file.
+            // ... even these can be a null placeholder in the file.
             // That's historically for the android player 'rm player', now implemented in RM-spot the sotify player.
-            // so we use a silent reserved move called "Continue".  Nothing is heard, but it appears in the seq file.
+            // So we use a silent reserved move called "Continue".  Nothing is heard, but it fills time and appears in the seq file.
             objDataClean[i - countExtended] = { $: { name: 'Continue' } }
           }
         }
@@ -519,12 +518,6 @@ class discDataHelper {
           }
         ]
       })
-      fs.ensureDir(path.join(path.join(RMSPOT, asWhat.schemeName)))
-      fs.writeFileSync(path.join(RMSPOT, asWhat.schemeName, 'moves.json'), JSON.stringify(objDataClean, null, 2), 'utf8')
-      if (objDataCleanExtra.length) {
-        fs.writeFileSync(path.join(RMSPOT, asWhat.schemeName, 'combos.json'), JSON.stringify(objDataCleanExtra, null, 2), 'utf8')
-      }
-      // this.$store.dispatch('diagMovesWithUsage')
     } else if (asWhat.type === 'beats') {
       // note the Beat object is replaced with a millisecond integer in the "clean" above
       xml = builder.buildObject({
@@ -548,9 +541,6 @@ class discDataHelper {
               _: asWhat.MP3URL || ''
             }
           },
-          // {format: {
-          //   '_': '2.0'
-          // }},
           {
             beats: {
               beat: objDataClean
@@ -558,8 +548,6 @@ class discDataHelper {
           }
         ]
       })
-      fs.ensureDir(path.join(path.join(RMSPOT, 'compases_para_canciones')))
-      fs.writeFileSync(path.join(path.join(RMSPOT, 'compases_para_canciones', path.basename(outFilePath).replace(/\.xml/, '.json'))), JSON.stringify(objDataClean, null, 2), 'utf8')
     } else if (asWhat.type === 'sequence') {
       xml = builder.buildObject({
         root: [
@@ -602,9 +590,6 @@ class discDataHelper {
           }
         ]
       })
-      fs.ensureDir(path.join(RMSPOT, asWhat.schemeName, 'secuencias_para_canciones'))
-      const wrapRMSData = { name: asWhat.schemeName, authorId: asWhat.authorId, tags: asWhat.seqTags, moves: objDataClean }
-      fs.writeFileSync(path.join(RMSPOT, asWhat.schemeName, 'secuencias_para_canciones', path.basename(outFilePath).replace(/\.seq/, '.jseq')), JSON.stringify(wrapRMSData, null, 2), 'utf8')
     } else if (asWhat.type === 'combos') {
       xml = builder.buildObject({
         root: [
@@ -637,9 +622,6 @@ class discDataHelper {
       if (this.fileExists(outFilePath)) {
         fs.remove(outFilePath) // empty, better to delete it
         console.log('The file ' + outFilePath + ' was DELETED!')
-        const rmsOutFilePath = path.join(RMSPOT, asWhat.schemeName, 'secuencias_para_canciones', path.basename(outFilePath).replace(/\.seq/, '.jseq'))
-        fs.remove(rmsOutFilePath)
-        console.log('The file ' + rmsOutFilePath + ' was DELETED!')
       }
     } else {
       // could use writeFileSync but may not be required, s/b more responsive this way

@@ -1,6 +1,6 @@
 Third party tools supporting RuedaMatic.
 
-ffmpegLocal.exe - renamed from standard ffmpeg.exe
+ffmpegLocal.exe - renamed from standard ffmpeg.exe, old version 4.1 2018 but known to work as WE need
  - USE:
  - calculate md5 of a song file, excluding metadata tags like title, artist, lyrics, etc.  Constant even if metadata changes.
  - when you load a song, and create beats and a call sequence, they will contain the filename and md5 signature of the song.
@@ -13,8 +13,7 @@ ffmpegLocal.exe - renamed from standard ffmpeg.exe
  - and even if the music file is the same recording, but remastered, likely there will be a different lead-in pause, putting off the timing.
  - timba music is not just a metronome, it has a lot of expression... intending for the dancers to respond appropriately.
  - So the call sequence SHOULD also be matched to the song it was made for.
- 
+
 
 recycle-bin.exe from https://github.com/sindresorhus/recycle-bin
  - Move files and folders to the Windows recycle bin
- 

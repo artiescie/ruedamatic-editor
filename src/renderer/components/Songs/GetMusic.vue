@@ -15,7 +15,6 @@
         <b-form-fieldset label-cols="5" label="Rows/pg" class="col-3">
           <b-form-select :options="[{text:10,value:10},{text:20,value:20},{text:50,value:50}]" v-model="perPage" />
         </b-form-fieldset>
-<!-- :variant="rowCriteria.stringName.length>0?'bg-secondary':'bg-light'"  -->
         <b-row class="col-3 mb-2">
           <b-input-group class="mb-1" title="Filter by file name" label="Name" label-cols="3" label-for="inputFiltName">
             <b-form-input :class="{'bg-warning': rowCriteria.stringName.length}" id="inputFiltName" ref="inputFiltName"
@@ -47,7 +46,7 @@ that was loaded from a file on this local computer" class="col-3">
           <b-form-checkbox title="Show only music that is not slow (beats-per-minute)" v-model="rowCriteria.onlyWithCalls">songs with Preset calls</b-form-checkbox>
         </b-col>
       </div>
-      <b-table striped hover sort-by="filename " small :items="beatsFiles" :fields="fields" :current-page="currentPage" :per-page="perPage"
+      <b-table striped hover sort-by="filename" small :items="beatsFiles" :fields="fields" :current-page="currentPage" :per-page="perPage"
           :filter="rowCriteria" :filter-function="customFilter" @filtered="onFiltered">
         <template slot="filename" slot-scope="each">
           {{ each.item.filename }}
@@ -117,7 +116,7 @@ that was loaded from a file on this local computer" class="col-3">
 </template>
 
 <script>
-import replace from 'replace-in-file'
+import riff from 'replace-in-file'
 import electron from 'electron'
 import path from 'path'
 import he from 'he'
@@ -126,10 +125,10 @@ import xml2js from 'xml2js'
 // eslint-disable-next-line no-unused-vars
 import { toRegex, toString } from 'diacritic-regex'
 
-const HOMEDIR = electron.remote.app.getPath('home')
+// const HOMEDIR = electron.remote.app.getPath('home')
 const DOCDIR = electron.remote.app.getPath('documents')
 const RMDIR = DOCDIR + '/RuedaMaticEditor'
-const MUSICFOLDER = path.join(HOMEDIR, 'Music')
+const MUSICFOLDER = electron.remote.app.getPath('music')
 
 export default {
   name: 'GetMusic',
@@ -190,20 +189,22 @@ export default {
           {
             key: 'filename',
             sortable: true,
+            sortByFormatted: true,
             tdAttr: 'tdCommentTitle',
-            formatter: comment => {
+            formatter: original => {
+              const bare = original.replace(/(\d+ )(.*)/, '$2')
               const ELLIPSIS_CHARACTER = '\u2026'
               const max = 72
-              if (comment.length > max) {
-                return comment.slice(0, max - 1) + ELLIPSIS_CHARACTER
+              if (bare.length > max) {
+                return bare.slice(0, max - 1) + ELLIPSIS_CHARACTER
               } else {
-                return comment
+                return bare
               }
             }
           },
           { key: 'tags', label: 'Seq Tags', sortable: true, tdAttr: 'tdTags' },
           { key: 'bpm', label: 'bpm', sortable: true, tdAttr: 'tdBpm' },
-          { key: 'link', sortable: true },
+          { key: 'link', label: 'Song', sortable: true },
           { key: 'mp3URL', label: 'Buy', sortable: false },
           { key: 'spotifySongId', sortable: true }
         ]
@@ -212,13 +213,13 @@ export default {
               key: 'filename',
               sortable: true,
               tdAttr: 'tdCommentTitle',
-              formatter: comment => {
+              formatter: original => {
                 const ELLIPSIS_CHARACTER = '\u2026'
                 const max = 72
-                if (comment.length > max) {
-                  return comment.slice(0, max - 1) + ELLIPSIS_CHARACTER
+                if (original.length > max) {
+                  return original.slice(0, max - 1) + ELLIPSIS_CHARACTER
                 } else {
-                  return comment
+                  return original
                 }
               }
             },
@@ -301,7 +302,7 @@ BEATS: Only songs with beats are listed.  To set beats, click "To Workbench" on 
         // not the current beats file we are editing, let's use replace-in-file and find the right file with the files argument
         const file = path.basename(this.spotifySongIdFileName, path.extname(this.spotifySongIdFileName)) + '.xml'
         // eslint-disable-next-line no-unused-vars
-        const results = replace.sync({
+        const results = riff.sync({
           files: path.join(RMDIR, 'compases_para_canciones', file),
           from: /(authorAndSongURL date=".{23}Z" authorId="[^"]*")( *)(spotifySongId="[A-Za-z0-9]*")*(>.*<\/authorAndSongURL>)/gi,
           to: '$1 spotifySongId="' + this.spotifySongId + '"$4',
@@ -334,7 +335,7 @@ BEATS: Only songs with beats are listed.  To set beats, click "To Workbench" on 
         const element = xmlNewTag.replace(/<?.*\n/gm, '')
         const file = path.basename(this.buySongURLFileName, path.extname(this.buySongURLFileName)) + '.xml'
         // eslint-disable-next-line no-unused-vars
-        const results = replace.sync({
+        const results = riff.sync({
           files: path.join(RMDIR, 'compases_para_canciones', file),
           from: /(<authorAndSongURL.*authorAndSongURL>)/gi,
           to: element,
@@ -422,7 +423,7 @@ BEATS: Only songs with beats are listed.  To set beats, click "To Workbench" on 
           }
         } // end of helper lookin2
 
-        replace.sync({ // don't need results
+        riff.sync({ // don't need results
           files: path.join(RMDIR, that.RMEFolder, 'secuencias_para_canciones', seqFile),
           from: /<author.*(tags="(.*)")?>.*<\/author>/gi,
           to: (...args) => lookin2(args),
@@ -443,7 +444,7 @@ BEATS: Only songs with beats are listed.  To set beats, click "To Workbench" on 
       // ...grep will only buffer lines terminated by \n, whereas \r does not terminate a line from the buffering standpoint.
       // note: \s between lines matches linux EOL, \s+ matches windows as well
       // eslint-disable-next-line no-unused-vars
-      const results = replace.sync({
+      const results = riff.sync({
         files: path.join(RMDIR, 'compases_para_canciones', '*.xml'),
         from: /<musicfile.*">([^<]*)<\/musicfile>\s+.*authorAndSongURL.*>(http[^<]*)?(.+)?<\/authorAndSongURL>/gi,
         to: (...args) => lookin(args), // here the beatsFiles array is populated
@@ -471,7 +472,7 @@ BEATS: Only songs with beats are listed.  To set beats, click "To Workbench" on 
       }
       const getTitle = value => {
         const howTo = `Load song.  On Songs workbench, click on Call sequence.
-Build a sequence of calls, then add tags to it. \nTag Examples: 'Beginners', 'Lesson2', 'Thursday'.
+You build a sequence of calls, then click "Tags" in Songs/Workbbench. \nTag Examples: 'Beginners', 'Lesson2', 'Thursday'.
 Tags field may be up to 20 chars.  Then, use tags to filter your prepared songs here.`
         if (!item.seqExists) {
           return 'No sequence exists yet!\n' + howTo
