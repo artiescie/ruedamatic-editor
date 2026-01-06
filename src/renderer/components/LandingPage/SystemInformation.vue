@@ -101,7 +101,7 @@ click here to update counts and validations shown above">
       <div class="items">
         <div class="item" title="Version you are using of this program">
           <div class="name">Ver </div>
-          <div class="value">{{ ruedamaticversion }} </div>&nbsp;<div class="name">Built Fri Aug 01, 2025 - (08:56 PM)
+          <div class="value">{{ ruedamaticversion }} </div>&nbsp;<div class="name">Built Sun Dec 28, 2025 - (04:00 PM)
           </div>
         </div>
       </div>
